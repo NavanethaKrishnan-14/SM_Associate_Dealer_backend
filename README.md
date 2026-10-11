@@ -16,7 +16,7 @@ Shared REST API for the SM Associate Cars customer app, dealer app, public websi
 1. Create a MongoDB database using MongoDB Atlas or a local MongoDB server.
 2. Copy `.env.example` to `.env`.
 3. Set `MONGODB_URI` to your MongoDB connection string and set a strong random `JWT_ACCESS_SECRET` of at least 32 characters.
-4. Set `WEB_ORIGIN` to the website origin.
+4. Set `WEB_ORIGIN` to the website origin and `PUBLIC_API_URL` to the public API origin (for example, `https://api.example.com`, without `/api/v1`). Production startup requires `PUBLIC_API_URL` so uploaded image links never trust the incoming Host header.
 5. Run `npm install`, then `npm run dev`.
 
 The API connects to MongoDB before listening for requests. The connection string must point to a reachable database; production should use a managed MongoDB Atlas cluster rather than `localhost`.
