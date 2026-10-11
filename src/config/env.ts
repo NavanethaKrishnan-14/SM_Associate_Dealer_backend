@@ -7,6 +7,9 @@ const envSchema = z.object({
   API_BASE_PATH: z.string().startsWith("/").default("/api/v1"),
   WEB_ORIGIN: z.string().url().default("http://localhost:3000"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
+  JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
+  REFRESH_TOKEN_DAYS: z.coerce.number().int().min(1).max(90).default(30),
 });
 
 const parsed = envSchema.safeParse(process.env);
