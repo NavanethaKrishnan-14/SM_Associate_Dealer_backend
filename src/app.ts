@@ -42,6 +42,12 @@ const apiLimiter = rateLimit({
   },
 });
 app.use(env.API_BASE_PATH, apiLimiter);
+app.use(env.API_BASE_PATH, (_req, res, next) => {
+  // Prevent browsers and intermediary caches from retaining account, enquiry, or admin API responses.
+  // Public image responses set their own explicit cache policy in the image delivery route.
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "ok" } });
