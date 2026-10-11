@@ -9,6 +9,12 @@ import { authRouter } from "./modules/auth/auth.routes.js";
 import { dealerCarsRouter } from "./modules/dealer/dealer-cars.routes.js";
 import { dealerImagesRouter } from "./modules/dealer/dealer-images.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
+import { favoritesRouter } from "./modules/favorites/favorites.routes.js";
+import { customerEnquiriesRouter } from "./modules/enquiries/customer-enquiries.routes.js";
+import { dealerEnquiriesRouter } from "./modules/enquiries/dealer-enquiries.routes.js";
+import { customerTestDrivesRouter } from "./modules/test-drives/customer.routes.js";
+import { dealerTestDrivesRouter } from "./modules/test-drives/dealer.routes.js";
+import { notificationsRouter } from "./modules/notifications/notifications.routes.js";
 
 export const app = express();
 
@@ -31,6 +37,12 @@ app.use(`${env.API_BASE_PATH}/auth`, authRouter);
 app.use(`${env.API_BASE_PATH}/dealer/cars`, dealerCarsRouter);
 app.use(`${env.API_BASE_PATH}/dealer/cars`, dealerImagesRouter);
 app.use(`${env.API_BASE_PATH}/admin`, adminRouter);
+app.use(`${env.API_BASE_PATH}/favorites`, favoritesRouter);
+app.use(`${env.API_BASE_PATH}/enquiries`, customerEnquiriesRouter);
+app.use(`${env.API_BASE_PATH}/dealer/enquiries`, dealerEnquiriesRouter);
+app.use(`${env.API_BASE_PATH}/test-drives`, customerTestDrivesRouter);
+app.use(`${env.API_BASE_PATH}/dealer/test-drives`, dealerTestDrivesRouter);
+app.use(`${env.API_BASE_PATH}/notifications`, notificationsRouter);
 
 app.get(env.API_BASE_PATH, (_req, res) => {
   res.status(200).json({
