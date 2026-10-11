@@ -85,12 +85,16 @@ dealerImagesRouter.post("/:carId/images", asyncHandler(async (req, res) => {
   }
 
   const expectedPathPrefix = `/${config.cloudName}/image/upload/`;
+  const expectedFolderPath = `/sm-associate-cars/cars/${car.id}/`;
   const publicIdLastPart = parsed.data.publicId.split("/").pop() ?? "";
+  const uploadedAssetPath = `${expectedFolderPath}${publicIdLastPart}.`;
   if (
     imageUrl.protocol !== "https:" ||
     imageUrl.hostname !== "res.cloudinary.com" ||
     !imageUrl.pathname.startsWith(expectedPathPrefix) ||
-    !publicIdLastPart.startsWith(`${car.id}_`)
+    !imageUrl.pathname.includes(uploadedAssetPath) ||
+    !publicIdLastPart.startsWith(`${car.id}_`) ||
+    !/^[0-9a-f-]{36}$/i.test(publicIdLastPart.slice(car.id.length + 1))
   ) {
     throw new HttpError(400, "The image must belong to this car's signed Cloudinary upload.", "UNTRUSTED_IMAGE");
   }
@@ -125,6 +129,12 @@ dealerImagesRouter.delete("/:carId/images/:imageId", asyncHandler(async (req, re
   if (!image) throw new HttpError(404, "Image not found for this vehicle.", "IMAGE_NOT_FOUND");
 
   const config = cloudinaryConfig();
+  cloudinary.config({
+    cloud_name: config.cloudName,
+    api_key: config.apiKey,
+    api_secret: config.apiSecret,
+    secure: true,
+  });
   const destroyed = await cloudinary.uploader.destroy(image.publicId, { resource_type: "image" });
   if (destroyed.result !== "ok" && destroyed.result !== "not found") {
     throw new HttpError(502, "The image could not be removed from cloud storage.", "IMAGE_DELETE_FAILED");
