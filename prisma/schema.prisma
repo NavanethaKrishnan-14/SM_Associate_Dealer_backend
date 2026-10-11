@@ -140,7 +140,7 @@ model Car {
   variant           String?
   title             String
   description       String?
-  pricePaise        BigInt
+  priceInr          Decimal      @db.Decimal(12, 2)
   manufacturingYear Int
   registrationYear  Int?
   mileageKm         Int
@@ -168,7 +168,7 @@ model Car {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  @@index([status, city, pricePaise])
+  @@index([status, city, priceInr])
   @@index([brandId, modelId, manufacturingYear])
   @@index([fuelType, transmission, mileageKm])
   @@index([dealerId, status, createdAt])
