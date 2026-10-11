@@ -25,7 +25,7 @@ function duplicate(error:unknown){return !!error && typeof error==="object" && "
 async function issueSession(user:{id:string;role:string}) {
  const refreshToken=randomBytes(48).toString("base64url");
  await RefreshToken.create({userId:user.id,tokenHash:hashToken(refreshToken),expiresAt:new Date(Date.now()+env.REFRESH_TOKEN_DAYS*86400000)});
- const accessToken=jwt.sign({role:user.role},env.JWT_ACCESS_SECRET,{subject:user.id,expiresIn:env.JWT_ACCESS_TTL_SECONDS});
+ const accessToken=jwt.sign({role:user.role},env.JWT_ACCESS_SECRET,{subject:user.id,expiresIn:env.JWT_ACCESS_TTL_SECONDS,algorithm:"HS256"});
  return {accessToken,refreshToken,tokenType:"Bearer",expiresIn:env.JWT_ACCESS_TTL_SECONDS};
 }
 function validation(res:any,message:string,details:unknown){res.status(400).json({success:false,error:{code:"VALIDATION_ERROR",message,details}});}
@@ -68,7 +68,7 @@ authRouter.post("/refresh",loginLimiter,asyncHandler(async(req,res)=>{
  stored.revokedAt=new Date();await stored.save();
  const nextRefreshToken=randomBytes(48).toString("base64url");
  await RefreshToken.create({userId:user.id,tokenHash:hashToken(nextRefreshToken),expiresAt:new Date(Date.now()+env.REFRESH_TOKEN_DAYS*86400000)});
- const accessToken=jwt.sign({role:user.role},env.JWT_ACCESS_SECRET,{subject:user.id,expiresIn:env.JWT_ACCESS_TTL_SECONDS});
+ const accessToken=jwt.sign({role:user.role},env.JWT_ACCESS_SECRET,{subject:user.id,expiresIn:env.JWT_ACCESS_TTL_SECONDS,algorithm:"HS256"});
  res.status(200).json({success:true,data:{accessToken,refreshToken:nextRefreshToken,tokenType:"Bearer",expiresIn:env.JWT_ACCESS_TTL_SECONDS}});
 }));
 authRouter.post("/logout",asyncHandler(async(req,res)=>{
