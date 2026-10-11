@@ -15,6 +15,7 @@ import { dealerEnquiriesRouter } from "./modules/enquiries/dealer-enquiries.rout
 import { customerTestDrivesRouter } from "./modules/test-drives/customer.routes.js";
 import { dealerTestDrivesRouter } from "./modules/test-drives/dealer.routes.js";
 import { notificationsRouter } from "./modules/notifications/notifications.routes.js";
+import { customerProfileRouter } from "./modules/users/customer-profile.routes.js";
 
 export const app = express();
 
@@ -43,6 +44,7 @@ app.use(`${env.API_BASE_PATH}/dealer/enquiries`, dealerEnquiriesRouter);
 app.use(`${env.API_BASE_PATH}/test-drives`, customerTestDrivesRouter);
 app.use(`${env.API_BASE_PATH}/dealer/test-drives`, dealerTestDrivesRouter);
 app.use(`${env.API_BASE_PATH}/notifications`, notificationsRouter);
+app.use(`${env.API_BASE_PATH}/users`, customerProfileRouter);
 
 app.get(env.API_BASE_PATH, (_req, res) => {
   res.status(200).json({
