@@ -1,158 +1,46 @@
 import { Router } from "express";
-import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { prisma } from "../../lib/prisma.js";
+import { Car, CarImage, Dealer, Brand, CarModel } from "../../lib/mongo.js";
 import { listCarsQuerySchema } from "./cars.schemas.js";
-
-export const carsRouter = Router();
-
-carsRouter.get("/", async (req, res, next) => {
-  const parsed = listCarsQuerySchema.safeParse(req.query);
-  if (!parsed.success) {
-    res.status(400).json({
-      success: false,
-      error: {
-        code: "INVALID_QUERY",
-        message: "One or more search filters are invalid.",
-        details: parsed.error.flatten().fieldErrors,
-      },
-    });
-    return;
-  }
-
-  try {
-    const filters = parsed.data;
-    const where: Prisma.CarWhereInput = {
-      status: "AVAILABLE",
-      publishedAt: { not: null },
-      dealer: { verificationStatus: "APPROVED" },
-      ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}),
-      ...(filters.fuelType ? { fuelType: filters.fuelType } : {}),
-      ...(filters.transmission ? { transmission: filters.transmission } : {}),
-      ...(filters.brand ? { brand: { slug: filters.brand } } : {}),
-      ...(filters.model ? { model: { slug: filters.model } } : {}),
-      ...(filters.minPrice !== undefined || filters.maxPrice !== undefined
-        ? { priceInr: {
-            ...(filters.minPrice !== undefined ? { gte: new Prisma.Decimal(filters.minPrice) } : {}),
-            ...(filters.maxPrice !== undefined ? { lte: new Prisma.Decimal(filters.maxPrice) } : {}),
-          } }
-        : {}),
-      ...(filters.minYear !== undefined || filters.maxYear !== undefined
-        ? { manufacturingYear: {
-            ...(filters.minYear !== undefined ? { gte: filters.minYear } : {}),
-            ...(filters.maxYear !== undefined ? { lte: filters.maxYear } : {}),
-          } }
-        : {}),
-      ...(filters.q ? {
-        OR: [
-          { title: { contains: filters.q, mode: "insensitive" } },
-          { description: { contains: filters.q, mode: "insensitive" } },
-          { brand: { name: { contains: filters.q, mode: "insensitive" } } },
-          { model: { name: { contains: filters.q, mode: "insensitive" } } },
-          { variant: { contains: filters.q, mode: "insensitive" } },
-        ],
-      } : {}),
-    };
-
-    const orderBy: Prisma.CarOrderByWithRelationInput[] = (() => {
-      switch (filters.sort) {
-        case "price_asc": return [{ priceInr: "asc" }, { createdAt: "desc" }];
-        case "price_desc": return [{ priceInr: "desc" }, { createdAt: "desc" }];
-        case "year_desc": return [{ manufacturingYear: "desc" }, { createdAt: "desc" }];
-        case "mileage_asc": return [{ mileageKm: "asc" }, { createdAt: "desc" }];
-        default: return [{ publishedAt: "desc" }, { createdAt: "desc" }];
-      }
-    })();
-
-    const [cars, total] = await prisma.$transaction([
-      prisma.car.findMany({
-        where,
-        orderBy,
-        skip: (filters.page - 1) * filters.limit,
-        take: filters.limit,
-        select: {
-          id: true,
-          title: true,
-          variant: true,
-          priceInr: true,
-          manufacturingYear: true,
-          mileageKm: true,
-          fuelType: true,
-          transmission: true,
-          city: true,
-          state: true,
-          publishedAt: true,
-          brand: { select: { name: true, slug: true } },
-          model: { select: { name: true, slug: true } },
-          images: {
-            orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }],
-            take: 1,
-            select: { imageUrl: true, isCover: true },
-          },
-          dealer: { select: { id: true, businessName: true, city: true } },
-        },
-      }),
-      prisma.car.count({ where }),
-    ]);
-
-    res.status(200).json({
-      success: true,
-      data: cars,
-      pagination: {
-        page: filters.page,
-        limit: filters.limit,
-        total,
-        totalPages: Math.ceil(total / filters.limit),
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
+export const carsRouter=Router();
+const safeRegex=(value:string)=>value.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+async function shapeCar(car:any, full=false){
+ const [brand,model,dealer,images]=await Promise.all([
+  Brand.findById(car.brandId).select(full?"name slug":"name slug").lean(),
+  CarModel.findById(car.modelId).select("name slug").lean(),
+  Dealer.findById(car.dealerId).select("businessName city verificationStatus").lean(),
+  CarImage.find({carId:car.id}).sort({isCover:-1,sortOrder:1}).lean()
+ ]);
+ return {id:car.id,title:car.title,variant:car.variant??null,...(full?{description:car.description??null,registrationYear:car.registrationYear??null,color:car.color??null,bodyType:car.bodyType??null,ownershipCount:car.ownershipCount??null,registrationState:car.registrationState??null,insuranceValidTill:car.insuranceValidTill??null}:{}),priceInr:String(car.priceInr),status:car.status,manufacturingYear:car.manufacturingYear,mileageKm:car.mileageKm,fuelType:car.fuelType,transmission:car.transmission,city:car.city,state:car.state,publishedAt:car.publishedAt,brand:brand?{id:String(brand._id),name:brand.name,slug:brand.slug}:null,model:model?{id:String(model._id),name:model.name,slug:model.slug}:null,images:images.map((i:any)=>({id:String(i._id),imageUrl:i.imageUrl,isCover:i.isCover,sortOrder:i.sortOrder})),dealer:dealer?{id:String(dealer._id),businessName:dealer.businessName,city:dealer.city}:null,...(full?{description:car.description??null,createdAt:car.createdAt,updatedAt:car.updatedAt}: {})};
+}
+carsRouter.get("/",async(req,res,next)=>{
+ const parsed=listCarsQuerySchema.safeParse(req.query);
+ if(!parsed.success){res.status(400).json({success:false,error:{code:"INVALID_QUERY",message:"One or more search filters are invalid.",details:parsed.error.flatten().fieldErrors}});return;}
+ try{
+  const f=parsed.data;
+  const query:any={status:"AVAILABLE",publishedAt:{$ne:null}};
+  const approved=await Dealer.find({verificationStatus:"APPROVED"}).select("_id").lean();
+  query.dealerId={$in:approved.map((d:any)=>String(d._id))};
+  if(f.city)query.city={$regex:safeRegex(f.city),$options:"i"};
+  if(f.fuelType)query.fuelType=f.fuelType;
+  if(f.transmission)query.transmission=f.transmission;
+  if(f.minPrice!==undefined||f.maxPrice!==undefined)query.priceInr={...(f.minPrice!==undefined?{$gte:f.minPrice}:{}),...(f.maxPrice!==undefined?{$lte:f.maxPrice}:{})};
+  if(f.minYear!==undefined||f.maxYear!==undefined)query.manufacturingYear={...(f.minYear!==undefined?{$gte:f.minYear}:{}),...(f.maxYear!==undefined?{$lte:f.maxYear}:{})};
+  if(f.brand){const b=await Brand.findOne({slug:f.brand}).select("_id").lean();query.brandId=b?String(b._id):"__not_found__";}
+  if(f.model){const m=await CarModel.findOne({slug:f.model}).select("_id").lean();query.modelId=m?String(m._id):"__not_found__";}
+  if(f.q){const regex={$regex:safeRegex(f.q),$options:"i"};const [brands,modelsFound]=await Promise.all([Brand.find({name:regex}).select("_id").lean(),CarModel.find({name:regex}).select("_id").lean()]);query.$or=[{title:regex},{description:regex},{variant:regex},{brandId:{$in:brands.map((x:any)=>String(x._id))}},{modelId:{$in:modelsFound.map((x:any)=>String(x._id))}}];}
+  const sort:any=f.sort==="price_asc"?{priceInr:1,createdAt:-1}:f.sort==="price_desc"?{priceInr:-1,createdAt:-1}:f.sort==="year_desc"?{manufacturingYear:-1,createdAt:-1}:f.sort==="mileage_asc"?{mileageKm:1,createdAt:-1}:{publishedAt:-1,createdAt:-1};
+  const [cars,total]=await Promise.all([Car.find(query).sort(sort).skip((f.page-1)*f.limit).limit(f.limit).lean(),Car.countDocuments(query)]);
+  const data=await Promise.all(cars.map((car:any)=>shapeCar({...car,id:String(car._id)})));
+  res.status(200).json({success:true,data,pagination:{page:f.page,limit:f.limit,total,totalPages:Math.ceil(total/f.limit)}});
+ }catch(error){next(error);}
 });
-
-carsRouter.get("/:id", async (req, res, next) => {
-  const id = zUuid.safeParse(req.params.id);
-  if (!id.success) {
-    res.status(400).json({
-      success: false,
-      error: { code: "INVALID_CAR_ID", message: "The car ID is invalid." },
-    });
-    return;
-  }
-
-  try {
-    const car = await prisma.car.findFirst({
-      where: {
-        id: id.data,
-        status: "AVAILABLE",
-        publishedAt: { not: null },
-        dealer: { verificationStatus: "APPROVED" },
-      },
-      select: {
-        id: true, title: true, variant: true, description: true, priceInr: true,
-        manufacturingYear: true, registrationYear: true, mileageKm: true,
-        fuelType: true, transmission: true, bodyType: true, color: true,
-        ownershipCount: true, registrationState: true, insuranceValidTill: true,
-        city: true, state: true, publishedAt: true,
-        brand: { select: { name: true, slug: true } },
-        model: { select: { name: true, slug: true } },
-        images: { orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }] },
-        dealer: { select: { id: true, businessName: true, description: true, city: true, state: true } },
-      },
-    });
-
-    if (!car) {
-      res.status(404).json({
-        success: false,
-        error: { code: "CAR_NOT_FOUND", message: "This car is not available." },
-      });
-      return;
-    }
-
-    res.status(200).json({ success: true, data: car });
-  } catch (error) {
-    next(error);
-  }
+carsRouter.get("/:id",async(req,res,next)=>{
+ try{
+  const car=await Car.findOne({_id:req.params.id,status:"AVAILABLE",publishedAt:{$ne:null}}).lean();
+  if(!car){res.status(404).json({success:false,error:{code:"CAR_NOT_FOUND",message:"Vehicle not found or no longer available."}});return;}
+  const dealer=await Dealer.findById(car.dealerId).lean();
+  if(!dealer||dealer.verificationStatus!=="APPROVED"){res.status(404).json({success:false,error:{code:"CAR_NOT_FOUND",message:"Vehicle not found or no longer available."}});return;}
+  res.status(200).json({success:true,data:await shapeCar({...car,id:String(car._id)},true)});
+ }catch(error){next(error);}
 });
-
-const zUuid = z.string().uuid();
