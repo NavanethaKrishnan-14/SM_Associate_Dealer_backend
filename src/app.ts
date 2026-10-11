@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { healthRouter } from "./routes/health.routes.js";
@@ -27,6 +28,20 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+
+// Authentication routes also have stricter per-route limits. This outer limit protects
+// the rest of the API from accidental loops and basic request floods.
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: { code: "RATE_LIMITED", message: "Too many requests. Please wait and try again." },
+  },
+});
+app.use(env.API_BASE_PATH, apiLimiter);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "ok" } });
