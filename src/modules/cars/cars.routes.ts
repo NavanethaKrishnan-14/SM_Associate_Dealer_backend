@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { z } from "zod";
 import { Car, CarImage, Dealer, Brand, CarModel } from "../../lib/mongo.js";
 import { listCarsQuerySchema } from "./cars.schemas.js";
 export const carsRouter=Router();
@@ -13,6 +14,20 @@ async function shapeCar(car:any, full=false){
  ]);
  return {id:car.id,title:car.title,variant:car.variant??null,...(full?{description:car.description??null,registrationYear:car.registrationYear??null,color:car.color??null,bodyType:car.bodyType??null,ownershipCount:car.ownershipCount??null,registrationState:car.registrationState??null,insuranceValidTill:car.insuranceValidTill??null}:{}),priceInr:String(car.priceInr),status:car.status,manufacturingYear:car.manufacturingYear,mileageKm:car.mileageKm,fuelType:car.fuelType,transmission:car.transmission,city:car.city,state:car.state,publishedAt:car.publishedAt,brand:brand?{id:String(brand._id),name:brand.name,slug:brand.slug}:null,model:model?{id:String(model._id),name:model.name,slug:model.slug}:null,images:images.map((i:any)=>({id:String(i._id),imageUrl:i.imageUrl,isCover:i.isCover,sortOrder:i.sortOrder})),dealer:dealer?{id:String(dealer._id),businessName:dealer.businessName,city:dealer.city}:null,...(full?{description:car.description??null,createdAt:car.createdAt,updatedAt:car.updatedAt}: {})};
 }
+carsRouter.get("/images/:imageId/content", async (req, res, next) => {
+ try {
+  const parsed = z.string().uuid().safeParse(req.params.imageId);
+  if (!parsed.success) { res.status(400).json({ success:false, error:{ code:"INVALID_IMAGE_ID", message:"The image ID is invalid." } }); return; }
+  const image = await CarImage.findById(parsed.data).select("data contentType sizeBytes");
+  if (!image || !image.data || !image.contentType) { res.status(404).json({ success:false, error:{ code:"IMAGE_NOT_FOUND", message:"Image not found." } }); return; }
+  res.setHeader("Content-Type", image.contentType);
+  res.setHeader("Content-Length", String(image.sizeBytes ?? image.data.length));
+  res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.status(200).end(image.data);
+ } catch (error) { next(error); }
+});
+
 carsRouter.get("/",async(req,res,next)=>{
  const parsed=listCarsQuerySchema.safeParse(req.query);
  if(!parsed.success){res.status(400).json({success:false,error:{code:"INVALID_QUERY",message:"One or more search filters are invalid.",details:parsed.error.flatten().fieldErrors}});return;}
