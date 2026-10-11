@@ -6,7 +6,7 @@ Shared REST API for the SM Associate Cars customer app, dealer app, public websi
 
 - Node.js 22+, TypeScript and Express
 - **MongoDB with Mongoose** (PostgreSQL, Prisma and Cloudinary removed)
-- Vehicle photos stored as binary image data in MongoDB
+- Vehicle photos stored as binary image data in MongoDB (`CarImage`); no external image-hosting service is required
 - Zod validation, Helmet, CORS and standardized API errors
 - JWT access tokens and hashed, rotating refresh tokens
 - GitHub Actions typecheck and build validation
