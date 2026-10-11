@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { env } from "../config/env.js";
 
 const id = { type: String, default: randomUUID };
-const opts = { timestamps: true, versionKey: false, strict: false, minimize: false, toJSON: { virtuals: true, transform: (_doc: unknown, ret: Record<string, any>) => { if (ret._id !== undefined) { ret.id = String(ret._id); delete ret._id; } delete ret.__v; return ret; } }, toObject: { virtuals: true } };
+const opts: any = { timestamps: true, versionKey: false, strict: false, minimize: false, toJSON: { virtuals: true, transform: (_doc: unknown, ret: Record<string, any>) => { if (ret._id !== undefined) { ret.id = String(ret._id); delete ret._id; } delete ret.__v; return ret; } }, toObject: { virtuals: true } };
 const make = (name: string, schema: Schema): any => (models[name] as Model<any>) ?? model(name, schema);
 const userSchema = new Schema({ _id: id, name: { type: String, required: true }, email: { type: String, unique: true, sparse: true, lowercase: true }, phone: { type: String, required: true, unique: true }, passwordHash: { type: String, required: true }, role: { type: String, enum: ["CUSTOMER","DEALER","ADMIN","SUPER_ADMIN"], default: "CUSTOMER" }, status: { type: String, enum: ["ACTIVE","SUSPENDED","PENDING_VERIFICATION"], default: "ACTIVE" } }, opts);
 const dealerSchema = new Schema({ _id: id, userId: { type: String, ref: "User", required: true, unique: true }, businessName: { type: String, required: true }, description: String, addressLine: String, city: { type: String, required: true }, state: { type: String, default: "Tamil Nadu" }, postalCode: String, verificationStatus: { type: String, enum: ["PENDING","APPROVED","REJECTED","SUSPENDED"], default: "PENDING" }, verifiedAt: Date }, opts);
