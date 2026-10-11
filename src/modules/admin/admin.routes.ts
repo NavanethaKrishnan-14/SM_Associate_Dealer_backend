@@ -32,7 +32,7 @@ const moderationSchema = z.object({
 const accountStatusSchema = z.object({ status: z.enum(["ACTIVE", "SUSPENDED", "PENDING_VERIFICATION"]) });
 const reportStatusSchema = z.object({ status: z.enum(["UNDER_REVIEW", "RESOLVED", "DISMISSED"]) });
 
-function parseId(value: string) {
+function parseId(value: string | undefined) {
   const parsed = idSchema.safeParse(value);
   if (!parsed.success) throw new HttpError(400, "The ID is invalid.", "INVALID_ID");
   return parsed.data;
