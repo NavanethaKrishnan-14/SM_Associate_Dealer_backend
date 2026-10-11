@@ -10,7 +10,7 @@ async function shapeCar(car:any, full=false){
   Brand.findById(car.brandId).select(full?"name slug":"name slug").lean(),
   CarModel.findById(car.modelId).select("name slug").lean(),
   Dealer.findById(car.dealerId).select("businessName city verificationStatus").lean(),
-  CarImage.find({carId:car.id}).sort({isCover:-1,sortOrder:1}).lean()
+  CarImage.find({carId:car.id}).select("imageUrl isCover sortOrder").sort({isCover:-1,sortOrder:1}).lean()
  ]);
  return {id:car.id,title:car.title,variant:car.variant??null,...(full?{description:car.description??null,registrationYear:car.registrationYear??null,color:car.color??null,bodyType:car.bodyType??null,ownershipCount:car.ownershipCount??null,registrationState:car.registrationState??null,insuranceValidTill:car.insuranceValidTill??null}:{}),priceInr:String(car.priceInr),status:car.status,manufacturingYear:car.manufacturingYear,mileageKm:car.mileageKm,fuelType:car.fuelType,transmission:car.transmission,city:car.city,state:car.state,publishedAt:car.publishedAt,brand:brand?{id:String(brand._id),name:brand.name,slug:brand.slug}:null,model:model?{id:String(model._id),name:model.name,slug:model.slug}:null,images:images.map((i:any)=>({id:String(i._id),imageUrl:i.imageUrl,isCover:i.isCover,sortOrder:i.sortOrder})),dealer:dealer?{id:String(dealer._id),businessName:dealer.businessName,city:dealer.city}:null,...(full?{description:car.description??null,createdAt:car.createdAt,updatedAt:car.updatedAt}: {})};
 }
