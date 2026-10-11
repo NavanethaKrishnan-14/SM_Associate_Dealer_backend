@@ -26,7 +26,8 @@
     "zod": "^3.25.76",
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
-    "cloudinary": "^2.7.0"
+    "cloudinary": "^2.7.0",
+    "express-rate-limit": "^8.1.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
