@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "../../lib/prisma.js";
 import { listCarsQuerySchema } from "./cars.schemas.js";
 
@@ -154,5 +155,4 @@ carsRouter.get("/:id", async (req, res, next) => {
   }
 });
 
-import { z as zUuidLibrary } from "zod";
-const zUuid = zUuidLibrary.string().uuid();
+const zUuid = z.string().uuid();
