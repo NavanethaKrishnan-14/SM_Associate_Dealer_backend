@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { UserRole, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -11,6 +12,34 @@ import { HttpError } from "../../lib/http-error.js";
 import { prisma } from "../../lib/prisma.js";
 
 export const authRouter = Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: {
+      code: "AUTH_RATE_LIMITED",
+      message: "Too many authentication attempts. Please wait before trying again.",
+    },
+  },
+});
+
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 8,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: {
+      code: "REGISTRATION_RATE_LIMITED",
+      message: "Too many registration attempts. Try again later.",
+    },
+  },
+});
 
 const passwordSchema = z.string().min(8).max(72);
 const phoneSchema = z.string().trim().regex(/^\+?[0-9]{10,15}$/, "Enter a valid phone number.");
@@ -63,7 +92,7 @@ function duplicateAccountError(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
-authRouter.post("/register/customer", asyncHandler(async (req, res) => {
+authRouter.post("/register/customer", registrationLimiter, asyncHandler(async (req, res) => {
   const parsed = customerRegistrationSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -95,7 +124,7 @@ authRouter.post("/register/customer", asyncHandler(async (req, res) => {
   }
 }));
 
-authRouter.post("/register/dealer", asyncHandler(async (req, res) => {
+authRouter.post("/register/dealer", registrationLimiter, asyncHandler(async (req, res) => {
   const parsed = dealerRegistrationSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -140,7 +169,7 @@ authRouter.post("/register/dealer", asyncHandler(async (req, res) => {
   }
 }));
 
-authRouter.post("/login", asyncHandler(async (req, res) => {
+authRouter.post("/login", loginLimiter, asyncHandler(async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -171,7 +200,7 @@ authRouter.post("/login", asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: { user: safeUser, ...session } });
 }));
 
-authRouter.post("/refresh", asyncHandler(async (req, res) => {
+authRouter.post("/refresh", loginLimiter, asyncHandler(async (req, res) => {
   const parsed = refreshSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new HttpError(400, "A valid refresh token is required.", "INVALID_REFRESH_TOKEN");
