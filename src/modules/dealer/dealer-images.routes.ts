@@ -26,9 +26,30 @@ const upload = multer({
 });
 
 function makeImageUrl(req: import("express").Request, imageId: string) {
-  const forwardedProtocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
-  const protocol = forwardedProtocol || req.protocol;
-  return `${protocol}://${req.get("host")}${env.API_BASE_PATH}/cars/images/${imageId}/content`;
+  // Production must use the explicitly configured public API origin. Do not trust
+  // the incoming Host header when persisting URLs that will later be shown to users.
+  const origin = env.PUBLIC_API_URL
+    ?? (env.NODE_ENV !== "production" ? `${req.protocol}://${req.get("host")}` : "");
+  if (!origin) {
+    throw new HttpError(500, "Image delivery is not configured. Contact support.", "IMAGE_DELIVERY_NOT_CONFIGURED");
+  }
+  return `${origin}${env.API_BASE_PATH}/cars/images/${imageId}/content`;
+}
+
+function hasValidImageSignature(buffer: Buffer, mimeType: string) {
+  if (mimeType === "image/jpeg") {
+    return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
+  if (mimeType === "image/png") {
+    return buffer.length >= 8
+      && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  if (mimeType === "image/webp") {
+    return buffer.length >= 12
+      && buffer.toString("ascii", 0, 4) === "RIFF"
+      && buffer.toString("ascii", 8, 12) === "WEBP";
+  }
+  return false;
 }
 
 async function ownedCar(carId: string | undefined, userId: string) {
@@ -46,6 +67,9 @@ dealerImagesRouter.post("/:carId/images", upload.single("file"), asyncHandler(as
   const car = await ownedCar(req.params.carId, req.auth!.userId);
   const file = req.file;
   if (!file) throw new HttpError(400, "Choose an image file to upload.", "IMAGE_FILE_REQUIRED");
+  if (!hasValidImageSignature(file.buffer, file.mimetype)) {
+    throw new HttpError(400, "The file contents do not match a supported image type.", "INVALID_IMAGE_CONTENT");
+  }
   const count = await CarImage.countDocuments({ carId: car.id });
   if (count >= 12) throw new HttpError(409, "A listing can contain at most 12 photos.", "IMAGE_LIMIT_REACHED");
 
