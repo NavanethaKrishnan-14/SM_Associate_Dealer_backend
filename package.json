@@ -21,7 +21,7 @@
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
     "express-rate-limit": "^8.1.0",
-    "mongoose": "^8.19.1",
+    "mongoose": "^9.11.1",
     "multer": "^2.0.2"
   },
   "devDependencies": {
