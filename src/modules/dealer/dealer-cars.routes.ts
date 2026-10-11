@@ -256,7 +256,6 @@ dealerCarsRouter.patch("/:id/status", asyncHandler(async (req, res) => {
       status: requested,
       ...(requested === "SOLD" ? { soldAt: new Date() } : {}),
       ...(requested === "RESERVED" ? { reservedAt: new Date() } : {}),
-      ...(requested === "AVAILABLE" ? { reservedAt: null } : {}),
     },
   });
 
