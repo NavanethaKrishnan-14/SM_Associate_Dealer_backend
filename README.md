@@ -5,10 +5,10 @@ Shared REST API for the SM Associate Cars customer app, dealer app, public websi
 ## Stack
 
 - Node.js 22+, TypeScript and Express
-- **MongoDB with Mongoose** (PostgreSQL and Prisma removed)
+- **MongoDB with Mongoose** (PostgreSQL, Prisma and Cloudinary removed)
+- Vehicle photos stored as binary image data in MongoDB
 - Zod validation, Helmet, CORS and standardized API errors
 - JWT access tokens and hashed, rotating refresh tokens
-- Cloudinary-signed vehicle photo uploads
 - GitHub Actions typecheck and build validation
 
 ## Local development
@@ -16,7 +16,7 @@ Shared REST API for the SM Associate Cars customer app, dealer app, public websi
 1. Create a MongoDB database using MongoDB Atlas or a local MongoDB server.
 2. Copy `.env.example` to `.env`.
 3. Set `MONGODB_URI` to your MongoDB connection string and set a strong random `JWT_ACCESS_SECRET` of at least 32 characters.
-4. Set `WEB_ORIGIN` to the website origin. Add Cloudinary environment variables when enabling vehicle photo uploads.
+4. Set `WEB_ORIGIN` to the website origin.
 5. Run `npm install`, then `npm run dev`.
 
 The API connects to MongoDB before listening for requests. The connection string must point to a reachable database; production should use a managed MongoDB Atlas cluster rather than `localhost`.
@@ -29,13 +29,15 @@ Versioned API root: `GET /api/v1`
 - **Authentication:** customer/dealer registration, login, refresh, logout and current user
 - **Public marketplace:** car listing search and car details; only available cars from approved dealers are shown
 - **Dealer inventory:** create/update/status/archive vehicle listings
-- **Dealer images:** signed Cloudinary uploads and image metadata management
+- **Dealer images:** authenticated multipart uploads stored in MongoDB, plus public image delivery for listing galleries
 - **Favourites:** add, list and remove saved vehicles
 - **Enquiries:** customer enquiries and dealer inbox/status management
 - **Test drives:** customer booking/cancellation and dealer response
 - **Notifications:** list and mark read
 - **Customer profile:** profile updates
 - **Administration:** dashboard, dealer verification, vehicle moderation, user status, reports and audit logs
+
+Vehicle image uploads accept JPG, PNG or WebP up to 10 MB per image, with at most 12 images per listing. Images are stored in MongoDB; no third-party image-storage credentials or server-local upload directory are required. Be mindful that image binaries increase database storage and outbound data usage.
 
 Dealer and listing ownership is checked by the API. Sold vehicle records are retained; delete requests archive inventory rather than removing transaction history. Admin endpoints require the ADMIN or SUPER_ADMIN role.
 
@@ -54,7 +56,6 @@ Set these values in the hosting provider's environment settings:
 - `MONGODB_URI`
 - `JWT_ACCESS_SECRET`
 - `WEB_ORIGIN`
-- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (for uploads)
 - Optional `PORT`, `API_BASE_PATH`, `JWT_ACCESS_TTL_SECONDS`, `REFRESH_TOKEN_DAYS`
 
 The customer app, dealer app and website should use the same deployed API base path, `/api/v1`.
