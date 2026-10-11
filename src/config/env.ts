@@ -20,6 +20,18 @@ const envSchema = z.object({
       message: "PUBLIC_API_URL is required in production to generate trusted image URLs.",
     });
   }
+  if (value.NODE_ENV === "production" && value.PUBLIC_API_URL && !value.PUBLIC_API_URL.startsWith("https://")) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["PUBLIC_API_URL"], message: "PUBLIC_API_URL must use HTTPS in production." });
+  }
+  if (value.NODE_ENV === "production" && value.WEB_ORIGIN.startsWith("http://localhost")) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["WEB_ORIGIN"], message: "WEB_ORIGIN must be the deployed HTTPS website in production." });
+  }
+  if (value.NODE_ENV === "production" && /localhost|127\.0\.0\.1/i.test(value.MONGODB_URI)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["MONGODB_URI"], message: "Production must use a reachable managed MongoDB connection, not localhost." });
+  }
+  if (value.NODE_ENV === "production" && /replace-this|change-me|your-secret|example-secret/i.test(value.JWT_ACCESS_SECRET)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["JWT_ACCESS_SECRET"], message: "Replace the example JWT secret with a randomly generated production secret." });
+  }
 });
 
 const parsed = envSchema.safeParse(process.env);
