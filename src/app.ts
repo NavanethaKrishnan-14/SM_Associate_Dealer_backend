@@ -8,6 +8,7 @@ import { carsRouter } from "./modules/cars/cars.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { dealerCarsRouter } from "./modules/dealer/dealer-cars.routes.js";
 import { dealerImagesRouter } from "./modules/dealer/dealer-images.routes.js";
+import { adminRouter } from "./modules/admin/admin.routes.js";
 
 export const app = express();
 
@@ -29,6 +30,7 @@ app.use(`${env.API_BASE_PATH}/cars`, carsRouter);
 app.use(`${env.API_BASE_PATH}/auth`, authRouter);
 app.use(`${env.API_BASE_PATH}/dealer/cars`, dealerCarsRouter);
 app.use(`${env.API_BASE_PATH}/dealer/cars`, dealerImagesRouter);
+app.use(`${env.API_BASE_PATH}/admin`, adminRouter);
 
 app.get(env.API_BASE_PATH, (_req, res) => {
   res.status(200).json({
