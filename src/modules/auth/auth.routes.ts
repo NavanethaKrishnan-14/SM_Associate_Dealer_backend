@@ -61,11 +61,14 @@ authRouter.post("/login",loginLimiter,asyncHandler(async(req,res)=>{
 }));
 authRouter.post("/refresh",loginLimiter,asyncHandler(async(req,res)=>{
  const parsed=refreshSchema.safeParse(req.body);if(!parsed.success)throw new HttpError(400,"A valid refresh token is required.","INVALID_REFRESH_TOKEN");
- const stored=await RefreshToken.findOne({tokenHash:hashToken(parsed.data.refreshToken),revokedAt:null,expiresAt:{$gt:new Date()}}); 
+ const stored=await RefreshToken.findOneAndUpdate(
+  {tokenHash:hashToken(parsed.data.refreshToken),revokedAt:null,expiresAt:{$gt:new Date()}},
+  {$set:{revokedAt:new Date()}},
+  {new:true},
+ );
  if(!stored)throw new HttpError(401,"The refresh token is invalid or expired. Please sign in again.","INVALID_REFRESH_TOKEN");
  const user=await User.findById(stored.userId);
  if(!user||user.status!=="ACTIVE")throw new HttpError(401,"The refresh token is invalid or expired. Please sign in again.","INVALID_REFRESH_TOKEN");
- stored.revokedAt=new Date();await stored.save();
  const nextRefreshToken=randomBytes(48).toString("base64url");
  await RefreshToken.create({userId:user.id,tokenHash:hashToken(nextRefreshToken),expiresAt:new Date(Date.now()+env.REFRESH_TOKEN_DAYS*86400000)});
  const accessToken=jwt.sign({role:user.role},env.JWT_ACCESS_SECRET,{subject:user.id,expiresIn:env.JWT_ACCESS_TTL_SECONDS,algorithm:"HS256"});
