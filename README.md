@@ -1,66 +1,68 @@
-# SM Associate Cars — Marketplace API
+# SM Associate Cars — MongoDB API
 
 Shared REST API for the SM Associate Cars customer app, dealer app, public website and administrator console.
 
 ## Stack
 
 - Node.js 22+, TypeScript and Express
-- PostgreSQL with Prisma ORM
-- Zod validation, Helmet security headers, CORS and standardized error responses
-- JWT access tokens with hashed, rotating refresh tokens
-- Cloudinary-signed uploads for vehicle photos
-- GitHub Actions validation of the Prisma schema and TypeScript build
+- **MongoDB with Mongoose** (PostgreSQL and Prisma removed)
+- Zod validation, Helmet, CORS and standardized API errors
+- JWT access tokens and hashed, rotating refresh tokens
+- Cloudinary-signed vehicle photo uploads
+- GitHub Actions typecheck and build validation
 
 ## Local development
 
-Requirements: Node.js 22+, npm 10+, PostgreSQL 15+.
+1. Create a MongoDB database using MongoDB Atlas or a local MongoDB server.
+2. Copy `.env.example` to `.env`.
+3. Set `MONGODB_URI` to your MongoDB connection string and set a strong random `JWT_ACCESS_SECRET` of at least 32 characters.
+4. Set `WEB_ORIGIN` to the website origin. Add Cloudinary environment variables when enabling vehicle photo uploads.
+5. Run `npm install`, then `npm run dev`.
 
-1. Copy `.env.example` to `.env`.
-2. Set `DATABASE_URL` to a PostgreSQL database you control. Set a strong random `JWT_ACCESS_SECRET` of at least 32 characters.
-3. Configure `WEB_ORIGIN` for your local website origin. Add Cloudinary values when enabling image uploads.
-4. Run `npm install`.
-5. Run `npm run prisma:generate`.
-6. Run `npm run prisma:migrate` to create/apply the initial migration against the configured development database.
-7. Run `npm run dev`.
+The API connects to MongoDB before listening for requests. The connection string must point to a reachable database; production should use a managed MongoDB Atlas cluster rather than `localhost`.
 
 Health endpoint: `GET /health`  
 Versioned API root: `GET /api/v1`
 
-**Database migration note:** the Prisma schema is committed, but a generated SQL migration has not yet been committed. Connect a development PostgreSQL database and run `npm run prisma:migrate`; review and commit the resulting `prisma/migrations` directory before running `npm run prisma:deploy` in production. Do not point the development migration command at your production database.
+## API areas
 
-## Implemented API areas
+- **Authentication:** customer/dealer registration, login, refresh, logout and current user
+- **Public marketplace:** car listing search and car details; only available cars from approved dealers are shown
+- **Dealer inventory:** create/update/status/archive vehicle listings
+- **Dealer images:** signed Cloudinary uploads and image metadata management
+- **Favourites:** add, list and remove saved vehicles
+- **Enquiries:** customer enquiries and dealer inbox/status management
+- **Test drives:** customer booking/cancellation and dealer response
+- **Notifications:** list and mark read
+- **Customer profile:** profile updates
+- **Administration:** dashboard, dealer verification, vehicle moderation, user status, reports and audit logs
 
-- **Authentication:** `POST /api/v1/auth/register/customer`, `POST /api/v1/auth/register/dealer`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`
-- **Public marketplace:** `GET /api/v1/cars`, `GET /api/v1/cars/:id`. Filters include query, city, brand, model, price range, year, fuel type, transmission and sort. Only published cars from approved dealers are returned.
-- **Dealer inventory:** `GET/POST /api/v1/dealer/cars`, `PATCH /api/v1/dealer/cars/:id`, `PATCH /api/v1/dealer/cars/:id/status`, `DELETE /api/v1/dealer/cars/:id`
-- **Dealer images:** `POST /api/v1/dealer/cars/:id/images/signature`, `POST /api/v1/dealer/cars/:id/images`, `DELETE /api/v1/dealer/cars/:id/images/:imageId`
-- **Favourites:** `GET/POST /api/v1/favorites`, `DELETE /api/v1/favorites/:carId`
-- **Enquiries:** `POST /api/v1/enquiries`, `GET /api/v1/enquiries/me`, `GET /api/v1/dealer/enquiries`, `PATCH /api/v1/dealer/enquiries/:id`
-- **Test drives:** `POST /api/v1/test-drives`, `GET /api/v1/test-drives/me`, `PATCH /api/v1/test-drives/me/:id/cancel`, `GET /api/v1/dealer/test-drives`, `PATCH /api/v1/dealer/test-drives/:id`
-- **Notifications:** `GET /api/v1/notifications`, `PATCH /api/v1/notifications/:id/read`, `PATCH /api/v1/notifications/read-all`
-- **Customer profile:** `PATCH /api/v1/users/me`
-- **Administration:** `GET /api/v1/admin/dashboard`, dealer verification, pending-car moderation, user status management, reports and audit logs.
-
-All dealer inventory changes are checked server-side against the authenticated dealer profile. Car deletion archives the listing instead of deleting business history. The admin API is restricted to `ADMIN` or `SUPER_ADMIN` roles.
+Dealer and listing ownership is checked by the API. Sold vehicle records are retained; delete requests archive inventory rather than removing transaction history. Admin endpoints require the ADMIN or SUPER_ADMIN role.
 
 ## First super administrator
 
-1. Register an account through the customer registration endpoint using the administrator's intended email address.
-2. With the correct database selected, set `ADMIN_BOOTSTRAP_EMAIL` to that account's email and run `npm run admin:bootstrap` once.
-3. Remove `ADMIN_BOOTSTRAP_EMAIL` from the shell/environment immediately after the command completes.
+1. Register an account using the app.
+2. Set `ADMIN_BOOTSTRAP_EMAIL` to that account's email and run `npm run admin:bootstrap` from a trusted workstation with the same MongoDB URI.
+3. Remove `ADMIN_BOOTSTRAP_EMAIL` from the shell/environment after the one-time command.
 
-This one-time command refuses to run if an active super administrator already exists. Keep database credentials private and run it only from a trusted administrator workstation or deployment console.
+The bootstrap refuses to run when an active super administrator already exists. Never commit real credentials or a `.env` file.
 
 ## Deployment configuration
 
-Set the real environment variables in the hosting provider's secret/environment settings. Never commit a real `.env` file, passwords, JWT secrets, database credentials or Cloudinary API secrets. Production must use a managed PostgreSQL URL—not `localhost`—and the production frontend origin in `WEB_ORIGIN`.
+Set these values in the hosting provider's environment settings:
 
-The mobile apps and website use the same API base path: `/api/v1`. See the corresponding repository READMEs:
+- `MONGODB_URI`
+- `JWT_ACCESS_SECRET`
+- `WEB_ORIGIN`
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (for uploads)
+- Optional `PORT`, `API_BASE_PATH`, `JWT_ACCESS_TTL_SECONDS`, `REFRESH_TOKEN_DAYS`
+
+The customer app, dealer app and website should use the same deployed API base path, `/api/v1`.
 
 - [Customer mobile app](https://github.com/NavanethaKrishnan-14/SM_Associate_Customer_mobile)
 - [Dealer mobile app](https://github.com/NavanethaKrishnan-14/SM_Associate_Dealer_mobile)
 - [Marketplace website and admin console](https://github.com/NavanethaKrishnan-14/SM_Associate_Dealer_web)
 
-## Current release status
+## Data migration note
 
-This is an actively developed foundation, not yet a production deployment. Generate and review the database migration, configure hosted PostgreSQL and Cloudinary, run the mobile apps on actual devices, verify complete user journeys and security settings, then deploy. No credentials or production URLs are included in the repository.
+This API now creates and reads data in MongoDB. It does **not** automatically copy existing PostgreSQL records into MongoDB. If the PostgreSQL database already contains real users, listings or enquiry history, export and import those records with ID/reference mapping before switching production traffic. Keep the old database intact until the imported record counts and end-to-end workflows are verified.
