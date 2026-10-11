@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { carsRouter } from "./modules/cars/cars.routes.js";
 
 export const app = express();
 
@@ -21,6 +22,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use(`${env.API_BASE_PATH}/health`, healthRouter);
+app.use(`${env.API_BASE_PATH}/cars`, carsRouter);
 
 app.get(env.API_BASE_PATH, (_req, res) => {
   res.status(200).json({
