@@ -27,7 +27,7 @@ function cloudinaryConfig() {
   return { cloudName: CLOUDINARY_CLOUD_NAME, apiKey: CLOUDINARY_API_KEY, apiSecret: CLOUDINARY_API_SECRET };
 }
 
-async function ownedCar(carId: string, userId: string) {
+async function ownedCar(carId: string | undefined, userId: string) {
   const idResult = z.string().uuid().safeParse(carId);
   if (!idResult.success) throw new HttpError(400, "The car ID is invalid.", "INVALID_CAR_ID");
   const dealer = await prisma.dealer.findUnique({ where: { userId }, select: { id: true } });
@@ -119,7 +119,9 @@ dealerImagesRouter.post("/:carId/images", asyncHandler(async (req, res) => {
 
 dealerImagesRouter.delete("/:carId/images/:imageId", asyncHandler(async (req, res) => {
   const car = await ownedCar(req.params.carId, req.auth!.userId);
-  const image = await prisma.carImage.findFirst({ where: { id: req.params.imageId, carId: car.id } });
+  const imageId = z.string().uuid().safeParse(req.params.imageId);
+  if (!imageId.success) throw new HttpError(400, "The image ID is invalid.", "INVALID_IMAGE_ID");
+  const image = await prisma.carImage.findFirst({ where: { id: imageId.data, carId: car.id } });
   if (!image) throw new HttpError(404, "Image not found for this vehicle.", "IMAGE_NOT_FOUND");
 
   const config = cloudinaryConfig();
