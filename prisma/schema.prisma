@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  DEALER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum DealerVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum CarStatus {
+  DRAFT
+  PENDING_APPROVAL
+  AVAILABLE
+  RESERVED
+  SOLD
+  REJECTED
+  ARCHIVED
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  CNG
+  ELECTRIC
+  HYBRID
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIC
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  IN_PROGRESS
+  CLOSED
+}
+
+enum TestDriveStatus {
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  email         String?        @unique
+  phone         String         @unique
+  passwordHash  String
+  role          UserRole       @default(CUSTOMER)
+  status        UserStatus     @default(ACTIVE)
+  dealerProfile Dealer?
+  favorites     Favorite[]
+  enquiries     Enquiry[]      @relation("CustomerEnquiries")
+  testDrives    TestDrive[]    @relation("CustomerTestDrives")
+  notifications Notification[]
+  reports       CarReport[]    @relation("Reporter")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([role, status])
+  @@map("users")
+}
+
+model Dealer {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  userId             String                   @unique @db.Uuid
+  businessName       String
+  description        String?
+  addressLine        String?
+  city               String
+  state              String                   @default("Tamil Nadu")
+  postalCode         String?
+  verificationStatus DealerVerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  cars               Car[]
+  enquiries          Enquiry[]                @relation("DealerEnquiries")
+  testDrives         TestDrive[]              @relation("DealerTestDrives")
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([city, verificationStatus])
+  @@map("dealers")
+}
+
+model Brand {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique
+  slug      String     @unique
+  models    CarModel[]
+  cars      Car[]
+  createdAt DateTime   @default(now())
+
+  @@map("brands")
+}
+
+model CarModel {
+  id        String   @id @default(uuid()) @db.Uuid
+  brandId   String   @db.Uuid
+  name      String
+  slug      String
+  brand     Brand    @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  cars      Car[]
+  createdAt DateTime @default(now())
+
+  @@unique([brandId, slug])
+  @@index([brandId, name])
+  @@map("car_models")
+}
+
+model Car {
+  id                String       @id @default(uuid()) @db.Uuid
+  dealerId          String       @db.Uuid
+  brandId           String       @db.Uuid
+  modelId           String       @db.Uuid
+  variant           String?
+  title             String
+  description       String?
+  pricePaise        BigInt
+  manufacturingYear Int
+  registrationYear  Int?
+  mileageKm         Int
+  fuelType          FuelType
+  transmission      Transmission
+  bodyType          String?
+  color             String?
+  ownershipCount    Int?
+  registrationState String?
+  insuranceValidTill DateTime?
+  city              String
+  state             String       @default("Tamil Nadu")
+  status            CarStatus    @default(DRAFT)
+  publishedAt       DateTime?
+  reservedAt        DateTime?
+  soldAt            DateTime?
+  dealer            Dealer       @relation(fields: [dealerId], references: [id], onDelete: Restrict)
+  brand             Brand        @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  model             CarModel     @relation(fields: [modelId], references: [id], onDelete: Restrict)
+  images            CarImage[]
+  favorites         Favorite[]
+  enquiries         Enquiry[]
+  testDrives        TestDrive[]
+  reports           CarReport[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([status, city, pricePaise])
+  @@index([brandId, modelId, manufacturingYear])
+  @@index([fuelType, transmission, mileageKm])
+  @@index([dealerId, status, createdAt])
+  @@map("cars")
+}
+
+model CarImage {
+  id        String   @id @default(uuid()) @db.Uuid
+  carId     String   @db.Uuid
+  imageUrl  String
+  publicId  String   @unique
+  sortOrder Int      @default(0)
+  isCover   Boolean  @default(false)
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([carId, sortOrder])
+  @@map("car_images")
+}
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  carId     String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, carId])
+  @@index([userId, createdAt])
+  @@map("favorites")
+}
+
+model Enquiry {
+  id          String        @id @default(uuid()) @db.Uuid
+  carId       String        @db.Uuid
+  customerId  String        @db.Uuid
+  dealerId    String        @db.Uuid
+  message     String
+  status      EnquiryStatus @default(NEW)
+  contactedAt DateTime?
+  closedAt    DateTime?
+  car         Car           @relation(fields: [carId], references: [id], onDelete: Restrict)
+  customer    User          @relation("CustomerEnquiries", fields: [customerId], references: [id], onDelete: Restrict)
+  dealer      Dealer        @relation("DealerEnquiries", fields: [dealerId], references: [id], onDelete: Restrict)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([dealerId, status, createdAt])
+  @@index([customerId, createdAt])
+  @@index([carId, createdAt])
+  @@map("enquiries")
+}
+
+model TestDrive {
+  id          String          @id @default(uuid()) @db.Uuid
+  carId       String          @db.Uuid
+  customerId  String          @db.Uuid
+  dealerId    String          @db.Uuid
+  scheduledAt DateTime
+  status      TestDriveStatus @default(REQUESTED)
+  notes       String?
+  car         Car             @relation(fields: [carId], references: [id], onDelete: Restrict)
+  customer    User            @relation("CustomerTestDrives", fields: [customerId], references: [id], onDelete: Restrict)
+  dealer      Dealer          @relation("DealerTestDrives", fields: [dealerId], references: [id], onDelete: Restrict)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([dealerId, status, scheduledAt])
+  @@index([customerId, scheduledAt])
+  @@map("test_drives")
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
+}
+
+model CarReport {
+  id         String   @id @default(uuid()) @db.Uuid
+  carId      String   @db.Uuid
+  reporterId String   @db.Uuid
+  reason     String
+  details    String?
+  status     String   @default("OPEN")
+  resolvedAt DateTime?
+  car        Car      @relation(fields: [carId], references: [id], onDelete: Restrict)
+  reporter   User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@map("car_reports")
+}
