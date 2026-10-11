@@ -1,9 +1,2 @@
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// Temporary compatibility exports for existing module imports during the MongoDB migration.
+export { User, Dealer, Brand, CarModel, Car, CarImage, Favorite, Enquiry, TestDrive, Notification, CarReport, RefreshToken, AuditLog, connectMongo, disconnectMongo, serialize } from "./mongo.js";
