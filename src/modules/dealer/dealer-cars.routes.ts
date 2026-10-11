@@ -76,7 +76,7 @@ async function requireDealerProfile(userId: string) {
   return dealer;
 }
 
-function parseUuid(value: string) {
+function parseUuid(value: string | undefined) {
   const result = z.string().uuid().safeParse(value);
   if (!result.success) throw new HttpError(400, "The car ID is invalid.", "INVALID_CAR_ID");
   return result.data;
