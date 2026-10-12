@@ -27,6 +27,7 @@ async function main() {
   const db = mongoose.connection.db;
   if (!db) throw new Error("MongoDB connection is not ready.");
 
+  const databaseName = mongoose.connection.name;
   const results: Array<{
     collection: string;
     documents: number;
@@ -56,9 +57,16 @@ async function main() {
     }
   }
 
+  const collectionNames = await db.listCollections({}, { nameOnly: true }).toArray();
+  const totalDocuments = await Promise.all(
+    collectionNames.filter(info => !info.name.startsWith("system.")).map(info => db.collection(info.name).countDocuments()),
+  ).then(counts => counts.reduce((sum, count) => sum + count, 0));
+
   console.log(JSON.stringify({
-    status: results.length ? "OBJECT_IDS_FOUND" : "NO_OBJECT_IDS_FOUND",
-    collectionsScanned: (await db.listCollections({}, { nameOnly: true }).toArray()).length,
+    databaseName,
+    totalDocuments,
+    status: results.length ? "OBJECT_IDS_FOUND" : totalDocuments === 0 ? "EMPTY_DATABASE_CHECK_MONGODB_URI" : "NO_OBJECT_IDS_FOUND",
+    collectionsScanned: collectionNames.length,
     collectionsWithObjectIds: results,
     note: "Audit only: this script never changes data. Use the report to identify collections/references before migrating anything outside the known schema."
   }, null, 2));
