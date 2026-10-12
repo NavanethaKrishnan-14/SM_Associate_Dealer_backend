@@ -69,19 +69,20 @@ This file supplements MOBILE_APP_FLOW.md with an actionable screen-to-API implem
 The current API does **not** yet implement listing quotas, plans, checkout, payments or paid entitlements. These are new features and must be added before the mobile UI presents paid checkout as working.
 
 Recommended launch limits:
-- CUSTOMER: 5 active personal-car listings free.
-- DEALER: 15 active inventory listings free.
-- Prices, plan duration, payment provider and tax/renewal policy remain business decisions and must be configured before production launch.
+- CUSTOMER: 5 listing submissions per calendar month free.
+- DEALER: 10 listing submissions per calendar month free.
+- This is a monthly posting allowance, not a cap on concurrently active cars. A successfully submitted listing consumes that month's allowance even if later sold, archived, withdrawn or rejected; an unsubmitted draft does not consume a post.
+- Prices, paid-plan allowances, payment provider, reset timezone, tax/renewal terms and cancellation/refund policy remain business decisions and must be configured before production launch.
 
 Suggested backend design (MongoDB/Mongoose; no database migration to another engine):
 
 1. Add server-owned `ListingPlan` configuration for plan/slot-pack names, role eligibility, slot allowance, duration, price/currency, active flag and terms version. Never trust client-supplied price or allowance.
-2. Add `ListingEntitlement` records tied to user/dealer, source plan/payment, allowed active slots, used/remaining slots, start/expiry and status. Calculate authoritative usage from persisted listing states; do not rely only on a mutable client counter.
+2. Add `ListingEntitlement` records tied to user/dealer, source plan/payment, monthly posting allowance, used/remaining posts, billing period/reset timestamp, start/expiry and status. Calculate authoritative usage from persisted listing states; do not rely only on a mutable client counter.
 3. Add `PaymentOrder` records with provider order/payment IDs, amount/currency, purpose, status, idempotency key and verified webhook metadata. Never store payment credentials.
 4. Add endpoints such as `GET /billing/listing-quota`, `GET /billing/plans`, `POST /billing/orders`, `GET /billing/orders/:id` and a provider webhook endpoint. These are proposals, not existing routes; confirm final names when implementing.
-5. Enforce quota in the backend transaction/atomic operation that creates or submits a listing, including race conditions when multiple requests arrive together. A failed quota check returns a stable error code such as `LISTING_QUOTA_EXCEEDED` and a structured quota summary.
+5. Enforce quota in the backend transaction/atomic operation at listing submission (not merely draft creation), including race conditions when multiple requests arrive together. A failed quota check returns a stable error code such as `LISTING_QUOTA_EXCEEDED` and a structured quota summary.
 6. Verify payment signature and final status server-side; grant entitlement only once from a verified webhook. Make webhook processing idempotent and reconcile pending payments. Client redirect/callback is not proof of payment.
 7. Add admin-only plan CRUD and payment/entitlement audit/support actions. Keep all admin APIs behind the existing server-side role middleware.
 8. Add automated tests for each role's free limit, concurrent create requests, sold/archived state transitions, plan expiry, payment success/failure, forged webhook, duplicate webhook and refund/revocation behavior.
 
-Before coding the payment flow, choose the provider and commercial model: one-time extra-slot pack, recurring subscription, or both. Do not invent prices or enable real checkout until the business approves plan amounts and terms.
+Before coding the payment flow, choose the provider and commercial model: monthly subscription with a defined number of listing posts, one-time extra-post pack, or both. Do not invent prices or enable real checkout until the business approves plan amounts and terms.
