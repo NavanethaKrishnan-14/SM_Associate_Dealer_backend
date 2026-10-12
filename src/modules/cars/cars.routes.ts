@@ -15,7 +15,7 @@ async function shapeCar(car:any, full=false){
 }
 carsRouter.get("/images/:imageId/content", async (req, res, next) => {
  try {
-  const parsed = z.string().uuid().safeParse(req.params.imageId);
+  const parsed = z.string().regex(/^(?:[A-Z]{3,4}-\d{3,}|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i).safeParse(req.params.imageId);
   if (!parsed.success) { res.status(400).json({ success:false, error:{ code:"INVALID_IMAGE_ID", message:"The image ID is invalid." } }); return; }
   const image = await CarImage.findById(parsed.data).select("data contentType sizeBytes");
   if (!image || !image.data || !image.contentType) { res.status(404).json({ success:false, error:{ code:"IMAGE_NOT_FOUND", message:"Image not found." } }); return; }
