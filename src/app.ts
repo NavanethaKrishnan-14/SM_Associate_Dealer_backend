@@ -17,6 +17,7 @@ import { customerTestDrivesRouter } from "./modules/test-drives/customer.routes.
 import { dealerTestDrivesRouter } from "./modules/test-drives/dealer.routes.js";
 import { notificationsRouter } from "./modules/notifications/notifications.routes.js";
 import { customerProfileRouter } from "./modules/users/customer-profile.routes.js";
+import { sellCarRouter } from "./modules/enquiries/sell-car.routes.js";
 
 export const app = express();
 
@@ -61,6 +62,7 @@ app.use(`${env.API_BASE_PATH}/dealer/cars`, dealerImagesRouter);
 app.use(`${env.API_BASE_PATH}/admin`, adminRouter);
 app.use(`${env.API_BASE_PATH}/favorites`, favoritesRouter);
 app.use(`${env.API_BASE_PATH}/enquiries`, customerEnquiriesRouter);
+app.use(`${env.API_BASE_PATH}/sell-car-requests`, sellCarRouter);
 app.use(`${env.API_BASE_PATH}/dealer/enquiries`, dealerEnquiriesRouter);
 app.use(`${env.API_BASE_PATH}/test-drives`, customerTestDrivesRouter);
 app.use(`${env.API_BASE_PATH}/dealer/test-drives`, dealerTestDrivesRouter);
