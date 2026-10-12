@@ -156,7 +156,7 @@ async function main() {
       // Remove only old-ID documents first, within the transaction, to avoid unique
       // index collisions when inserting their replacements. Transaction rollback protects data.
       for (const plan of plans) {
-        const oldIds = [...plan.idMap.keys()];
+        const oldIds = plan.docs.filter(doc => plan.idMap.has(String(doc._id))).map(doc => doc._id);
         if (oldIds.length) await plan.model.collection.deleteMany({ _id: { $in: oldIds } }, { session });
       }
 
