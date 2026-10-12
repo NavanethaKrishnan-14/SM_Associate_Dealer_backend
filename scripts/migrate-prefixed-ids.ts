@@ -96,10 +96,18 @@ function rewriteReferences(collection: string, source: Doc): Doc {
 
 async function main() {
   await connectMongo();
+  console.log(`Connected MongoDB database: ${mongoose.connection.name}`);
   const session = await mongoose.startSession();
   try {
     for (const plan of plans) {
       plan.docs = await plan.model.collection.find({}).toArray() as Doc[];
+    }
+
+    const totalDocuments = plans.reduce((sum, plan) => sum + plan.docs.length, 0);
+    if (totalDocuments === 0) {
+      throw new Error(
+        `Database "${mongoose.connection.name}" returned zero documents across all migration collections. No migration was performed. Check that MONGODB_URI points to the database containing your real data.`,
+      );
     }
 
     // Build the complete ID map before changing any documents. Existing prefixed IDs
