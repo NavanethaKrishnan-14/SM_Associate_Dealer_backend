@@ -1,6 +1,6 @@
 import {Router} from "express";import {z} from "zod";import {authenticate,requireRole} from "../../middleware/authenticate.js";import {asyncHandler} from "../../middleware/async-handler.js";import {HttpError} from "../../lib/http-error.js";import {User,Dealer,Car,Enquiry,Notification,Brand,CarModel,CarImage} from "../../lib/mongo.js";
 export const customerEnquiriesRouter=Router();customerEnquiriesRouter.use(authenticate,requireRole("CUSTOMER"));
-const schema=z.object({carId:z.string().uuid(),message:z.string().trim().min(5).max(3000)});
+const schema=z.object({carId:z.string().regex(/^(?:[A-Z]{3,4}-\d{3,}|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i),message:z.string().trim().min(5).max(3000)});
 customerEnquiriesRouter.post("/",asyncHandler(async(req,res)=>{const p=schema.safeParse(req.body);if(!p.success){res.status(400).json({success:false,error:{code:"VALIDATION_ERROR",message:"Check the enquiry details.",details:p.error.flatten().fieldErrors}});return;}
 const customer=await User.findById(req.auth!.userId);if(!customer)throw new HttpError(401,"Customer account not found.","ACCOUNT_NOT_FOUND");
 const car=await Car.findOne({_id:p.data.carId,status:"AVAILABLE",publishedAt:{$ne:null}});if(!car)throw new HttpError(404,"This car is not available for enquiries.","CAR_NOT_FOUND");
