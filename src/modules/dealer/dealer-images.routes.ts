@@ -52,8 +52,9 @@ function hasValidImageSignature(buffer: Buffer, mimeType: string) {
   return false;
 }
 
-async function ownedCar(carId: string | undefined, userId: string) {
-  const parsed = z.string().uuid().safeParse(carId);
+async function ownedCar(carId: string | string[] | undefined, userId: string) {
+  const value = Array.isArray(carId) ? carId[0] : carId;
+  const parsed = z.string().uuid().safeParse(value);
   if (!parsed.success) throw new HttpError(400, "The car ID is invalid.", "INVALID_CAR_ID");
   const dealer = await Dealer.findOne({ userId });
   if (!dealer) throw new HttpError(403, "A dealer profile is required.", "DEALER_PROFILE_REQUIRED");
