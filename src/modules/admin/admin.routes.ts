@@ -7,7 +7,7 @@ const dealerDecisionSchema=z.object({status:z.enum(["APPROVED","REJECTED","SUSPE
 const moderationSchema=z.object({decision:z.enum(["APPROVE","REJECT"]),reason:z.string().trim().max(1000).optional()});
 const accountStatusSchema=z.object({status:z.enum(["ACTIVE","SUSPENDED","PENDING_VERIFICATION"])});
 const reportStatusSchema=z.object({status:z.enum(["UNDER_REVIEW","RESOLVED","DISMISSED"])});
-function parseId(v:string|undefined){const p=z.string().uuid().safeParse(v);if(!p.success)throw new HttpError(400,"The ID is invalid.","INVALID_ID");return p.data;}
+function parseId(v:string|string[]|undefined){const value=Array.isArray(v)?v[0]:v;const p=z.string().uuid().safeParse(value);if(!p.success)throw new HttpError(400,"The ID is invalid.","INVALID_ID");return p.data;}
 function queryError(res:any,message:string,details:unknown){res.status(400).json({success:false,error:{code:"VALIDATION_ERROR",message,details}});}
 async function audit(actorId:string,action:string,entityType:string,entityId:string,details?:unknown){await AuditLog.create({actorId,action,entityType,entityId,...(details!==undefined?{details}:{})});}
 adminRouter.get("/dashboard",asyncHandler(async(_req,res)=>{const [users,dealersPending,carsPending,carsAvailable,newEnquiries,testDrivesPending]=await Promise.all([User.countDocuments(),Dealer.countDocuments({verificationStatus:"PENDING"}),Car.countDocuments({status:"PENDING_APPROVAL"}),Car.countDocuments({status:"AVAILABLE"}),Enquiry.countDocuments({status:"NEW"}),TestDrive.countDocuments({status:"REQUESTED"})]);res.status(200).json({success:true,data:{users,dealersPending,carsPending,carsAvailable,newEnquiries,testDrivesPending}});}));
