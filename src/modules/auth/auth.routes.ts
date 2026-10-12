@@ -16,8 +16,9 @@ const registrationLimiter = rateLimit({ windowMs: 60*60*1000, limit: 8, standard
 const passwordSchema=z.string().min(8).max(72);
 const phoneSchema=z.string().trim().regex(/^\+?[0-9]{10,15}$/,"Enter a valid phone number.");
 const emailSchema=z.string().trim().email().max(254).optional();
-const customerRegistrationSchema=z.object({name:z.string().trim().min(2).max(100),phone:phoneSchema,email:emailSchema,password:passwordSchema});
-const dealerRegistrationSchema=customerRegistrationSchema.extend({businessName:z.string().trim().min(2).max(120),city:z.string().trim().min(2).max(100)});
+const registrationFields=z.object({name:z.string().trim().min(2).max(100),phone:phoneSchema,email:emailSchema,password:passwordSchema,confirmPassword:z.string().min(1).optional()}).refine((data)=>data.confirmPassword===undefined || data.password===data.confirmPassword,{message:"Passwords do not match.",path:["confirmPassword"]});
+const customerRegistrationSchema=registrationFields;
+const dealerRegistrationSchema=z.object({name:z.string().trim().min(2).max(100),phone:phoneSchema,email:emailSchema,password:passwordSchema,confirmPassword:z.string().min(1).optional(),businessName:z.string().trim().min(2).max(120),city:z.string().trim().min(2).max(100)}).refine((data)=>data.confirmPassword===undefined || data.password===data.confirmPassword,{message:"Passwords do not match.",path:["confirmPassword"]});
 const loginSchema=z.object({identifier:z.string().trim().min(3).max(254),password:passwordSchema,role:z.enum(["CUSTOMER","DEALER"]).optional()});
 const refreshSchema=z.object({refreshToken:z.string().min(20).max(256)});
 const hashToken=(token:string)=>createHash("sha256").update(token).digest("hex");
