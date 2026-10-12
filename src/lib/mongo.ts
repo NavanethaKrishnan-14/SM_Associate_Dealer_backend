@@ -19,6 +19,7 @@ const testDriveSchema = new Schema({ _id: id, carId: { type: String, ref: "Car",
 const notificationSchema = new Schema({ _id: id, userId: { type: String, ref: "User", required: true }, title: String, body: String, data: Schema.Types.Mixed, readAt: Date }, opts);
 const reportSchema = new Schema({ _id: id, carId: { type: String, ref: "Car", required: true }, reporterId: { type: String, ref: "User", required: true }, reason: { type: String, required: true }, details: String, status: { type: String, default: "OPEN" }, resolvedAt: Date }, opts);
 const refreshSchema = new Schema({ _id: id, userId: { type: String, ref: "User", required: true }, tokenHash: { type: String, required: true, unique: true }, expiresAt: { type: Date, required: true }, revokedAt: Date }, opts);
+refreshSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 const auditSchema = new Schema({ _id: id, actorId: { type: String, ref: "User" }, action: String, entityType: String, entityId: String, details: Schema.Types.Mixed }, opts);
 export const User = make("User", userSchema);
 export const Dealer = make("Dealer", dealerSchema);

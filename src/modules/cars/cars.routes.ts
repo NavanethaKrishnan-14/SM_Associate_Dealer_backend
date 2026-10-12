@@ -20,6 +20,8 @@ carsRouter.get("/images/:imageId/content", async (req, res, next) => {
   const image = await CarImage.findById(parsed.data).select("data contentType sizeBytes");
   if (!image || !image.data || !image.contentType) { res.status(404).json({ success:false, error:{ code:"IMAGE_NOT_FOUND", message:"Image not found." } }); return; }
   res.setHeader("Content-Type", image.contentType);
+  // These are intentionally public listing photos embedded by the separate website origin.
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
   res.setHeader("Content-Length", String(image.sizeBytes ?? image.data.length));
   res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
   res.setHeader("X-Content-Type-Options", "nosniff");
