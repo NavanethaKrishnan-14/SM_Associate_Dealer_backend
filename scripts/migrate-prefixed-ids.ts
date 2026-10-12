@@ -143,12 +143,24 @@ async function main() {
     await session.withTransaction(async () => {
       // Reserve counter values inside the same transaction as the migration.
       for (const plan of plans) {
-        const prefixes = new Set([...plan.idMap.values()].map(id => id.split("-")[0]));
+        const prefixes = new Set([
+          ...plan.docs.map(doc => {
+            const id = String(doc._id);
+            return isPrefixedId.test(id) ? id.split("-")[0] : plan.prefix(doc);
+          }),
+          ...[...plan.idMap.values()].map(id => id.split("-")[0]),
+        ]);
         for (const prefix of prefixes) {
-          const maxAssigned = [...plan.idMap.values()].reduce((max, id) =>
+          const existingMax = plan.docs.reduce((max, doc) => {
+            const id = String(doc._id);
+            return id.startsWith(prefix + "-") && isPrefixedId.test(id)
+              ? Math.max(max, Number(id.slice(prefix.length + 1)))
+              : max;
+          }, 0);
+          const assignedMax = [...plan.idMap.values()].reduce((max, id) =>
             id.startsWith(prefix + "-") ? Math.max(max, Number(id.slice(prefix.length + 1))) : max, 0);
           await mongoose.connection.collection("id_counters").updateOne(
-            { _id: prefix }, { $max: { seq: maxAssigned } }, { upsert: true, session },
+            { _id: prefix }, { $max: { seq: Math.max(existingMax, assignedMax) } }, { upsert: true, session },
           );
         }
       }
