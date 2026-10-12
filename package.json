@@ -13,7 +13,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "admin:bootstrap": "tsx scripts/bootstrap-admin.ts",
-    "migrate:prefixed-ids": "tsx scripts/migrate-prefixed-ids.ts"
+    "migrate:prefixed-ids": "tsx scripts/migrate-prefixed-ids.ts",
+    "audit:object-ids": "tsx scripts/audit-object-ids.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
