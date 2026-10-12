@@ -18,7 +18,7 @@ const phoneSchema=z.string().trim().regex(/^\+?[0-9]{10,15}$/,"Enter a valid pho
 const emailSchema=z.string().trim().email().max(254).optional();
 const customerRegistrationSchema=z.object({name:z.string().trim().min(2).max(100),phone:phoneSchema,email:emailSchema,password:passwordSchema});
 const dealerRegistrationSchema=customerRegistrationSchema.extend({businessName:z.string().trim().min(2).max(120),city:z.string().trim().min(2).max(100)});
-const loginSchema=z.object({identifier:z.string().trim().min(3).max(254),password:passwordSchema});
+const loginSchema=z.object({identifier:z.string().trim().min(3).max(254),password:passwordSchema,role:z.enum(["CUSTOMER","DEALER"]).optional()});
 const refreshSchema=z.object({refreshToken:z.string().min(20).max(256)});
 const hashToken=(token:string)=>createHash("sha256").update(token).digest("hex");
 function duplicate(error:unknown){return !!error && typeof error==="object" && "code" in error && (error as {code?:unknown}).code===11000;}
@@ -54,6 +54,7 @@ authRouter.post("/login",loginLimiter,asyncHandler(async(req,res)=>{
  const user=await User.findOne({$or:[{phone:identifier},{email:identifier.toLowerCase()}]});
  if(!user||!(await bcrypt.compare(parsed.data.password,user.passwordHash)))throw new HttpError(401,"The phone/email or password is incorrect.","INVALID_CREDENTIALS");
  if(user.status!=="ACTIVE")throw new HttpError(403,"This account is not active. Contact support for assistance.","ACCOUNT_INACTIVE");
+ if(parsed.data.role && user.role!==parsed.data.role)throw new HttpError(403,`This account is registered as ${user.role.toLowerCase()}. Select the matching role to sign in.`,"ROLE_MISMATCH");
  const dealer= user.role==="DEALER" ? await Dealer.findOne({userId:user.id}) : null;
  const session=await issueSession({id:user.id,role:user.role});
  const safeUser={id:user.id,name:user.name,email:user.email??null,phone:user.phone,role:user.role,status:user.status,...(dealer?{dealerProfile:{id:dealer.id,businessName:dealer.businessName,city:dealer.city,verificationStatus:dealer.verificationStatus}}:{})};
