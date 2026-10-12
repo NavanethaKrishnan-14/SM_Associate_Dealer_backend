@@ -69,4 +69,4 @@ The customer app, dealer app and website should use the same deployed API base p
 This API now creates and reads data in MongoDB. It does **not** automatically copy existing PostgreSQL records into MongoDB. If the PostgreSQL database already contains real users, listings or enquiry history, export and import those records with ID/reference mapping before switching production traffic. Keep the old database intact until the imported record counts and end-to-end workflows are verified.
 ## Mobile app flow
 
-The end-to-end mobile application journey, role permissions, screen structure, backend integration rules and release acceptance checklist are documented in [docs/MOBILE_APP_FLOW.md](docs/MOBILE_APP_FLOW.md).
+The end-to-end mobile application journey, role permissions, screen structure, backend integration rules and release acceptance checklist are documented in [docs/MOBILE_APP_FLOW.md](docs/MOBILE_APP_FLOW.md). The screen-to-endpoint mapping, implementation sequence and identified API gaps are in [docs/MOBILE_API_IMPLEMENTATION_MAP.md](docs/MOBILE_API_IMPLEMENTATION_MAP.md).
