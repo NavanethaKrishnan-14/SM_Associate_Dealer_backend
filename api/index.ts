@@ -6,8 +6,8 @@ let connectionPromise: Promise<void> | undefined;
 
 export default async function handler(req: Request, res: Response) {
   try {
-    // Vercel rewrites public API URLs to this function. Prefer the parsed
-    // query value (Vercel's normalized request) and fall back to the raw URL.
+    // Vercel rewrites public URLs to this function. Restore the original route
+    // before passing the request to Express.
     const queryPath = req.query.originalPath;
     const rawUrl = new URL(req.url ?? "/", "https://vercel.internal");
     const rawPath = rawUrl.searchParams.get("originalPath");
@@ -16,18 +16,28 @@ export default async function handler(req: Request, res: Response) {
     const pathOnly = queryIndex >= 0 ? originalPath.slice(0, queryIndex) : originalPath;
     const originalQuery = queryIndex >= 0 ? originalPath.slice(queryIndex + 1) : "";
 
-    // Preserve any actual query parameters forwarded by Vercel, but remove
-    // the internal rewrite parameter so it never leaks into application routes.
+    // Preserve forwarded query parameters, excluding Vercel's internal rewrite key.
     const extraQuery = new URLSearchParams(originalQuery);
     for (const [key, value] of Object.entries(req.query)) {
       if (key === "originalPath") continue;
       if (Array.isArray(value)) {
-        for (const item of value) if (typeof item === "string") extraQuery.append(key, item);
+        for (const item of value) {
+          if (typeof item === "string") extraQuery.append(key, item);
+        }
       } else if (typeof value === "string") {
         extraQuery.append(key, value);
       }
     }
     req.url = pathOnly + (extraQuery.size ? `?${extraQuery.toString()}` : "");
+
+    // Swagger UI and the OpenAPI document must remain available even when
+    // MongoDB is temporarily unavailable. These routes do not query the database.
+    if (
+      req.method === "GET" &&
+      (/^\/api-docs\/?$/.test(pathOnly) || pathOnly === "/openapi.yaml")
+    ) {
+      return app(req, res);
+    }
 
     connectionPromise ??= connectMongo().catch((error) => {
       connectionPromise = undefined;
