@@ -1,14 +1,30 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { connectMongo, disconnectMongo, User } from "../src/lib/mongo.js";
+
 async function main() {
- await connectMongo();
- const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.trim().toLowerCase();
- if (!email) throw new Error("Set ADMIN_BOOTSTRAP_EMAIL to the email of an existing account before running this command.");
- if (await User.countDocuments({ role: "SUPER_ADMIN", status: "ACTIVE" }) > 0) throw new Error("An active super administrator already exists. Refusing to create another through bootstrap.");
- const target = await User.findOne({ email }).select("name email role status");
- if (!target) throw new Error("No account uses ADMIN_BOOTSTRAP_EMAIL. Register that account through the app first, then run bootstrap.");
- target.role = "SUPER_ADMIN"; target.status = "ACTIVE"; await target.save();
- console.log("Super administrator configured:", { id: target.id, name: target.name, email: target.email, role: target.role });
- console.log("Remove ADMIN_BOOTSTRAP_EMAIL from your shell after this one-time command.");
+  const name = process.env.ADMIN_NAME?.trim();
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const phone = process.env.ADMIN_PHONE?.trim();
+  const password = process.env.ADMIN_PASSWORD;
+  if (!name || !email || !phone || !password) {
+    throw new Error("Set ADMIN_NAME, ADMIN_EMAIL, ADMIN_PHONE, and ADMIN_PASSWORD before running npm run admin:seed.");
+  }
+  if (password.length < 12 || password.length > 72) throw new Error("ADMIN_PASSWORD must be between 12 and 72 characters.");
+  if (!/^\+?[0-9]{10,15}$/.test(phone)) throw new Error("ADMIN_PHONE must contain 10 to 15 digits, optionally prefixed with +.");
+
+  await connectMongo();
+  // Convert legacy records to the one supported privileged role.
+  await User.updateMany({ role: "SUPER_ADMIN" }, { $set: { role: "ADMIN" } });
+  if (await User.countDocuments({ role: "ADMIN" }) > 0) {
+    throw new Error("An ADMIN account already exists. Sign in as that account to add more admins from the mobile Admin dashboard.");
+  }
+  const conflict = await User.findOne({ $or: [{ email }, { phone }] }).select("_id email phone");
+  if (conflict) throw new Error("The supplied admin email or phone already belongs to another account. Choose unused contact details.");
+  const user = await User.create({ name, email, phone, passwordHash: await bcrypt.hash(password, 12), role: "ADMIN", status: "ACTIVE" });
+  console.log("Initial ADMIN account created:", { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role });
+  console.log("Remove ADMIN_PASSWORD from your shell/environment after seeding. Never commit secrets.");
 }
-main().catch((error: unknown) => { console.error("Admin bootstrap failed:", error instanceof Error ? error.message : error); process.exitCode = 1; }).finally(async () => { await disconnectMongo(); });
+
+main().catch((error: unknown) => { console.error("Admin seed failed:", error instanceof Error ? error.message : error); process.exitCode = 1; })
+  .finally(async () => { await disconnectMongo(); });

@@ -4,7 +4,7 @@ import { env } from "../config/env.js";
 import { HttpError } from "../lib/http-error.js";
 import { User } from "../lib/mongo.js";
 
-export type UserRole = "CUSTOMER" | "DEALER" | "ADMIN" | "SUPER_ADMIN";
+export type UserRole = "CUSTOMER" | "DEALER" | "ADMIN";
 
 export const authenticate: RequestHandler = async (req, _res, next) => {
   const authorization = req.header("authorization");
@@ -26,7 +26,7 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
   if (
     typeof decoded.sub !== "string" ||
     typeof decoded.role !== "string" ||
-    !["CUSTOMER", "DEALER", "ADMIN", "SUPER_ADMIN"].includes(decoded.role)
+    !["CUSTOMER", "DEALER", "ADMIN"].includes(decoded.role)
   ) {
     next(new HttpError(401, "The access token is invalid.", "INVALID_ACCESS_TOKEN"));
     return;
