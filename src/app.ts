@@ -1,7 +1,8 @@
 import cors from "cors";
 import express from "express";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import helmetImport from "helmet";
+import type { HelmetOptions } from "helmet";
+import { rateLimit } from "express-rate-limit";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { healthRouter } from "./routes/health.routes.js";
@@ -18,6 +19,10 @@ import { dealerTestDrivesRouter } from "./modules/test-drives/dealer.routes.js";
 import { notificationsRouter } from "./modules/notifications/notifications.routes.js";
 import { customerProfileRouter } from "./modules/users/customer-profile.routes.js";
 import { sellCarRouter } from "./modules/enquiries/sell-car.routes.js";
+
+const helmet = helmetImport as unknown as ((options?: HelmetOptions) => import("express").RequestHandler) & {
+  contentSecurityPolicy: { getDefaultDirectives(): Record<string, string[]> };
+};
 
 export const app = express();
 
