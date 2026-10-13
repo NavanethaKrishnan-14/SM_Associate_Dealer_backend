@@ -8,10 +8,12 @@ info:
     relative to /api/v1. IDs may be prefixed sequential IDs (for example CAR-001)
     or legacy UUIDs where the implementation accepts them.
 servers:
-  - url: https://YOUR_DEPLOYED_API_HOST/api/v1
-    description: Replace with the deployed backend API base URL
+  - url: /api/v1
+    description: Same host as Swagger UI (recommended)
   - url: http://localhost:5000/api/v1
-    description: Local development
+    description: Local development (default port)
+  - url: http://localhost:8000/api/v1
+    description: Local development (if PORT=8000)
 tags:
   - name: Health
   - name: Authentication
