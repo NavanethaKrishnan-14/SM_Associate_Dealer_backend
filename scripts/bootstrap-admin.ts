@@ -3,10 +3,6 @@ import bcrypt from "bcryptjs";
 import { connectMongo, disconnectMongo, User } from "../src/lib/mongo.js";
 
 async function main() {
-  await connectMongo();
-  // Convert legacy records to the one supported privileged role.
-  await User.updateMany({ role: "SUPER_ADMIN" }, { $set: { role: "ADMIN" } });
-
   const name = process.env.ADMIN_NAME?.trim();
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const phone = process.env.ADMIN_PHONE?.trim();
@@ -16,6 +12,10 @@ async function main() {
   }
   if (password.length < 12 || password.length > 72) throw new Error("ADMIN_PASSWORD must be between 12 and 72 characters.");
   if (!/^\+?[0-9]{10,15}$/.test(phone)) throw new Error("ADMIN_PHONE must contain 10 to 15 digits, optionally prefixed with +.");
+
+  await connectMongo();
+  // Convert legacy records to the one supported privileged role.
+  await User.updateMany({ role: "SUPER_ADMIN" }, { $set: { role: "ADMIN" } });
   if (await User.countDocuments({ role: "ADMIN" }) > 0) {
     throw new Error("An ADMIN account already exists. Sign in as that account to add more admins from the mobile Admin dashboard.");
   }
