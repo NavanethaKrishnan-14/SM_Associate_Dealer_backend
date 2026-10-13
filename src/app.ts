@@ -144,6 +144,20 @@ app.use(env.API_BASE_PATH, (_req, res, next) => {
   next();
 });
 
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      name: "SM Associate Cars API",
+      status: "ok",
+      version: "v1",
+      health: "/health",
+      api: env.API_BASE_PATH,
+      docs: "/api-docs",
+    },
+  });
+});
+
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "ok" } });
 });
