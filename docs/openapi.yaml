@@ -8,10 +8,10 @@ info:
     relative to /api/v1. IDs may be prefixed sequential IDs (for example CAR-001)
     or legacy UUIDs where the implementation accepts them. Public sign-up follows the mobile app: customers use /auth/register/customer and dealers use /auth/register/dealer. Admin accounts must be provisioned by an administrator and cannot self-register.
 servers:
-  - url: https://YOUR_DEPLOYED_API_HOST/api/v1
-    description: Replace with the deployed backend API base URL
+  - url: http://localhost:8000/api/v1
+    description: Local development (default port 8000)
   - url: http://localhost:5000/api/v1
-    description: Local development
+    description: Local development (if PORT=5000)
 tags:
   - name: Health
   - name: Authentication
