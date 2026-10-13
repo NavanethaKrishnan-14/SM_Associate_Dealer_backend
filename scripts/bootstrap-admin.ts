@@ -15,7 +15,7 @@ async function main() {
     throw new Error("Set ADMIN_NAME, ADMIN_EMAIL, ADMIN_PHONE, and ADMIN_PASSWORD before running npm run admin:seed.");
   }
   if (password.length < 12 || password.length > 72) throw new Error("ADMIN_PASSWORD must be between 12 and 72 characters.");
-  if (!/^\\+?[0-9]{10,15}$/.test(phone)) throw new Error("ADMIN_PHONE must contain 10 to 15 digits, optionally prefixed with +.");
+  if (!/^\+?[0-9]{10,15}$/.test(phone)) throw new Error("ADMIN_PHONE must contain 10 to 15 digits, optionally prefixed with +.");
   if (await User.countDocuments({ role: "ADMIN" }) > 0) {
     throw new Error("An ADMIN account already exists. Sign in as that account to add more admins from the mobile Admin dashboard.");
   }
