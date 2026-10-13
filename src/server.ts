@@ -5,8 +5,8 @@ async function start() {
  await connectMongo();
  const server = app.listen(env.PORT, () => {
   console.log(`SM Associate Cars API listening on port ${env.PORT} (${env.NODE_ENV}) — MongoDB connected`);
-  console.log("OpenAPI specification: https://github.com/NavanethaKrishnan-14/SM_Associate_Dealer_backend/blob/fix-registration-api-swagger/docs/openapi.yaml");
-  console.log("Swagger Editor: https://editor.swagger.io/");
+  console.log(`Swagger UI (interactive API testing): http://localhost:${env.PORT}/api-docs`);
+  console.log(`OpenAPI specification: http://localhost:${env.PORT}/openapi.yaml`);
  });
  const shutdown = (signal: string) => {
   console.log(`${signal} received; closing HTTP server...`);
