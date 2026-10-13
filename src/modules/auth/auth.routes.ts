@@ -14,7 +14,7 @@ export const authRouter = Router();
 const loginLimiter = rateLimit({ windowMs: 15*60*1000, limit: 10, standardHeaders: "draft-8", legacyHeaders: false, message: { success:false,error:{code:"AUTH_RATE_LIMITED",message:"Too many authentication attempts. Please wait before trying again."} } });
 const registrationLimiter = rateLimit({ windowMs: 60*60*1000, limit: 8, standardHeaders: "draft-8", legacyHeaders: false, message: { success:false,error:{code:"REGISTRATION_RATE_LIMITED",message:"Too many registration attempts. Try again later."} } });
 const passwordSchema=z.string().min(8).max(72);
-const phoneSchema=z.string().trim().regex(/^\+?[0-9]{10,15}$/,"Enter a valid phone number.");
+const phoneSchema=z.string().trim().transform((value)=>value.replace(/\D/g,"")).refine((value)=>/^[0-9]{10,15}$/.test(value),"Enter a valid phone number.");
 const emailSchema=z.string().trim().email().max(254).optional();
 const registrationFields=z.object({name:z.string().trim().min(2).max(100),phone:phoneSchema,email:emailSchema,password:passwordSchema,confirmPassword:z.string().min(1).optional()}).refine((data)=>data.confirmPassword===undefined || data.password===data.confirmPassword,{message:"Passwords do not match.",path:["confirmPassword"]});
 const customerRegistrationSchema=registrationFields;
