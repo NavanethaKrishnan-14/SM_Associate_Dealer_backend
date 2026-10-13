@@ -96,7 +96,7 @@ paths:
               properties:
                 identifier: {type: string, example: '9876543210'}
                 password: {type: string, minLength: 8}
-                role: {type: string, enum: [CUSTOMER, DEALER, ADMIN], description: Admin role accepts provisioned ADMIN or SUPER_ADMIN accounts; public admin registration is disabled.}
+                role: {type: string, enum: [CUSTOMER, DEALER, ADMIN], description: Admin is a single role. Public registration is disabled; an existing admin can create additional admin accounts.}
       responses:
         '200': {description: Signed in; returns accessToken and refreshToken}
         '400': {$ref: '#/components/responses/BadRequest'}
@@ -400,6 +400,35 @@ paths:
       responses:
         '200': {description: Profile updated}
         '400': {$ref: '#/components/responses/BadRequest'}
+  /admin/admins:
+    get:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: List administrator accounts
+      responses:
+        '200': {description: Administrator accounts}
+    post:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: Create an administrator account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, password]
+              properties:
+                name: {type: string, minLength: 2, maxLength: 100}
+                phone: {type: string, example: '9790219874'}
+                email: {type: string, format: email}
+                password: {type: string, minLength: 12, maxLength: 72}
+      responses:
+        '201': {description: Administrator created}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {description: Admin role required}
+        '409': {$ref: '#/components/responses/Conflict'}
   /admin/dashboard:
     get:
       tags: [Administration]
