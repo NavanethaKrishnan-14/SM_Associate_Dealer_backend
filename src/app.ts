@@ -23,10 +23,43 @@ export const app = express();
 
 app.disable("x-powered-by");
 app.use(helmet());
-app.use(cors({
-  origin: env.WEB_ORIGIN,
+// CORS is needed for browser-based clients (website, admin console, Swagger UI).
+// Native React Native requests do not send an Origin header, so they are not blocked.
+// WEB_ORIGIN supports a comma-separated allowlist, for example:
+// https://your-site.vercel.app,https://www.your-domain.com
+const configuredOrigins = env.WEB_ORIGIN.split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+const corsOptions: import("cors").CorsOptions = {
+  origin(origin, callback) {
+    // Requests without Origin include React Native and server-to-server requests.
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    const normalizedOrigin = origin.replace(/\/$/, "");
+    const isLocalDevelopment =
+      env.NODE_ENV !== "production" &&
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(normalizedOrigin);
+
+    if (configuredOrigins.includes(normalizedOrigin) || isLocalDevelopment) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("CORS origin is not allowed"));
+  },
   credentials: true,
-}));
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+// Explicitly finish CORS preflight requests before the API rate limiter and routes.
+app.options(/.*/, cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
