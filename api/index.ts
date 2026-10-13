@@ -6,7 +6,24 @@ let connectionPromise: Promise<void> | undefined;
 
 export default async function handler(req: Request, res: Response) {
   try {
-    // Reuse the MongoDB connection across warm serverless invocations.
+    // Vercel's rewrite forwards every public path to this function. Restore
+    // the original path before passing the request to Express.
+    const originalPath = typeof req.query.originalPath === "string"
+      ? req.query.originalPath
+      : "/";
+    const queryIndex = originalPath.indexOf("?");
+    const pathOnly = queryIndex >= 0 ? originalPath.slice(0, queryIndex) : originalPath;
+    const originalQuery = queryIndex >= 0 ? originalPath.slice(queryIndex + 1) : "";
+    const forwardedQuery = { ...req.query };
+    delete forwardedQuery.originalPath;
+    const extraQuery = new URLSearchParams();
+    for (const [key, value] of Object.entries(forwardedQuery)) {
+      if (Array.isArray(value)) value.forEach((item) => extraQuery.append(key, item));
+      else if (typeof value === "string") extraQuery.append(key, value);
+    }
+    const queryString = [originalQuery, extraQuery.toString()].filter(Boolean).join("&");
+    req.url = pathOnly + (queryString ? `?${queryString}` : "");
+
     connectionPromise ??= connectMongo().catch((error) => {
       connectionPromise = undefined;
       throw error;
