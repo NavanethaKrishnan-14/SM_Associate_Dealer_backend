@@ -22,7 +22,17 @@ import { sellCarRouter } from "./modules/enquiries/sell-car.routes.js";
 export const app = express();
 
 app.disable("x-powered-by");
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+      "font-src": ["'self'", "https://unpkg.com", "data:"],
+      "connect-src": ["'self'"],
+    },
+  },
+}));
 
 // Serve the OpenAPI YAML file and a lightweight Swagger UI page without requiring
 // an extra package dependency. Swagger UI assets are loaded from the official CDN.
