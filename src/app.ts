@@ -100,13 +100,7 @@ const corsOptions: import("cors").CorsOptions = {
       env.NODE_ENV !== "production" &&
       /^https?:\/\/(localhost|127\.0\.0\.1|192\.168(?:\.\d{1,3}){2}|10(?:\.\d{1,3}){3}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})(:\d+)?$/i.test(normalizedOrigin);
 
-    // Expo web/dev clients can originate from the Metro/Expo host during local testing.
-    // Continue to require explicit allowlisting for deployed browser origins.
-    const isExpoDevelopment =
-      env.NODE_ENV !== "production" &&
-      /^https?:\/\/(localhost|127\.0\.0\.1|192\.168(?:\.\d{1,3}){2}|10(?:\.\d{1,3}){3}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})(:\d+)?$/i.test(normalizedOrigin);
-
-    if (configuredOrigins.includes(normalizedOrigin) || isLocalDevelopment || isExpoDevelopment) {
+    if (configuredOrigins.includes(normalizedOrigin) || isLocalDevelopment) {
       callback(null, true);
       return;
     }
