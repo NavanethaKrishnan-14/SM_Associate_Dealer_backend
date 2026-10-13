@@ -3,7 +3,11 @@ import { env } from "./config/env.js";
 import { connectMongo, disconnectMongo } from "./lib/mongo.js";
 async function start() {
  await connectMongo();
- const server = app.listen(env.PORT, () => console.log(`SM Associate Cars API listening on port ${env.PORT} (${env.NODE_ENV}) — MongoDB connected`));
+ const server = app.listen(env.PORT, () => {
+  console.log(`SM Associate Cars API listening on port ${env.PORT} (${env.NODE_ENV}) — MongoDB connected`);
+  console.log("OpenAPI specification: https://github.com/NavanethaKrishnan-14/SM_Associate_Dealer_backend/blob/fix-registration-api-swagger/docs/openapi.yaml");
+  console.log("Swagger Editor: https://editor.swagger.io/");
+ });
  const shutdown = (signal: string) => {
   console.log(`${signal} received; closing HTTP server...`);
   server.close((error) => { if (error) { console.error("Failed to close server cleanly:", error); process.exitCode = 1; } void disconnectMongo(); });
