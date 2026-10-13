@@ -6,7 +6,7 @@ info:
     OpenAPI specification for the SM Associate Cars customer app, dealer app,
     marketplace website and administrator console. All API paths below are
     relative to /api/v1. IDs may be prefixed sequential IDs (for example CAR-001)
-    or legacy UUIDs where the implementation accepts them.
+    or legacy UUIDs where the implementation accepts them. Public sign-up follows the mobile app: customers use /auth/register/customer and dealers use /auth/register/dealer. Admin accounts must be provisioned by an administrator and cannot self-register.
 servers:
   - url: https://YOUR_DEPLOYED_API_HOST/api/v1
     description: Replace with the deployed backend API base URL
@@ -43,7 +43,7 @@ paths:
   /auth/register/customer:
     post:
       tags: [Authentication]
-      summary: Register a customer and create a session
+      summary: Register a customer and create a session (mobile app customer flow)
       requestBody:
         required: true
         content:
@@ -63,7 +63,7 @@ paths:
   /auth/register/dealer:
     post:
       tags: [Authentication]
-      summary: Register a dealer and create a session
+      summary: Register a dealer and create a session (mobile app dealer flow)
       requestBody:
         required: true
         content:
