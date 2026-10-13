@@ -23,13 +23,17 @@ export const app = express();
 
 app.disable("x-powered-by");
 app.use(helmet({
+  // Swagger UI loads its CSS/JS bundle from the CDN. Allow those assets while
+  // keeping the API's other Helmet protections enabled.
+  crossOriginResourcePolicy: { policy: "cross-origin" },
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'", "https://unpkg.com"],
-      "style-src": ["'self'", "'unsafe-inline'", "https://unpkg.com"],
-      "font-src": ["'self'", "https://unpkg.com", "data:"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+      "font-src": ["'self'", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com", "data:"],
       "connect-src": ["'self'"],
+      "img-src": ["'self'", "data:", "https:"],
     },
   },
 }));
@@ -47,12 +51,12 @@ app.get("/api-docs/", (_req, res) => {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SM Associate Cars API — Swagger UI</title>
-  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
   <style>html{box-sizing:border-box;overflow-y:scroll}*,*:before,*:after{box-sizing:inherit}body{margin:0;background:#fafafa}</style>
 </head>
 <body>
   <div id="swagger-ui"></div>
-  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
   <script>
     window.onload = function () {
       window.ui = SwaggerUIBundle({
