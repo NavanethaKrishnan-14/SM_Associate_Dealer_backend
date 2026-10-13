@@ -2,6 +2,30 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/v1",
+      "destination": "/api/index?originalPath=/api/v1"
+    },
+    {
+      "source": "/api/v1/(.*)",
+      "destination": "/api/index?originalPath=/api/v1/$1"
+    },
+    {
+      "source": "/api-docs",
+      "destination": "/api/index?originalPath=/api-docs"
+    },
+    {
+      "source": "/api-docs/(.*)",
+      "destination": "/api/index?originalPath=/api-docs/$1"
+    },
+    {
+      "source": "/openapi.yaml",
+      "destination": "/api/index?originalPath=/openapi.yaml"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index?originalPath=/health"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api/index?originalPath=/$1"
     }
