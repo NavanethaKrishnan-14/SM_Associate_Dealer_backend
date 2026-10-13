@@ -2,7 +2,6 @@ import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { asyncHandler } from "../../middleware/async-handler.js";
-import { HttpError } from "../../lib/http-error.js";
 import { Enquiry } from "../../lib/mongo.js";
 
 export const sellCarRouter = Router();
