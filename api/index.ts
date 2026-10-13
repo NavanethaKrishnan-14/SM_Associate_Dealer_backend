@@ -8,9 +8,8 @@ export default async function handler(req: Request, res: Response) {
   try {
     // Vercel's rewrite forwards every public path to this function. Restore
     // the original path before passing the request to Express.
-    const originalPath = typeof req.query.originalPath === "string"
-      ? req.query.originalPath
-      : "/";
+    const incomingUrl = new URL(req.url ?? "/", "https://vercel.internal");
+    const originalPath = incomingUrl.searchParams.get("originalPath") ?? "/";
     const queryIndex = originalPath.indexOf("?");
     const pathOnly = queryIndex >= 0 ? originalPath.slice(0, queryIndex) : originalPath;
     const originalQuery = queryIndex >= 0 ? originalPath.slice(queryIndex + 1) : "";
