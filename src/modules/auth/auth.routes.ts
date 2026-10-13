@@ -55,7 +55,7 @@ authRouter.post("/login",loginLimiter,asyncHandler(async(req,res)=>{
  const user=await User.findOne({$or:[{phone:identifier},{email:identifier.toLowerCase()}]});
  if(!user||!(await bcrypt.compare(parsed.data.password,user.passwordHash)))throw new HttpError(401,"The phone/email or password is incorrect.","INVALID_CREDENTIALS");
  if(user.status!=="ACTIVE")throw new HttpError(403,"This account is not active. Contact support for assistance.","ACCOUNT_INACTIVE");
- if(parsed.data.role && user.role!==parsed.data.role)throw new HttpError(403,`This account is registered as ${user.role.toLowerCase()}. Select the matching role to sign in.`,"ROLE_MISMATCH");
+ if(parsed.data.role && !(parsed.data.role==="ADMIN" && ["ADMIN","SUPER_ADMIN"].includes(user.role)) && user.role!==parsed.data.role)throw new HttpError(403,`This account is registered as ${user.role.toLowerCase()}. Select the matching role to sign in.`,"ROLE_MISMATCH");
  const dealer= user.role==="DEALER" ? await Dealer.findOne({userId:user.id}) : null;
  const session=await issueSession({id:user.id,role:user.role});
  const safeUser={id:user.id,name:user.name,email:user.email??null,phone:user.phone,role:user.role,status:user.status,...(dealer?{dealerProfile:{id:dealer.id,businessName:dealer.businessName,city:dealer.city,verificationStatus:dealer.verificationStatus}}:{})};
