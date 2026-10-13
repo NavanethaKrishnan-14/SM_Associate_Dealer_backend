@@ -23,6 +23,42 @@ export const app = express();
 
 app.disable("x-powered-by");
 app.use(helmet());
+
+// Serve the OpenAPI YAML file and a lightweight Swagger UI page without requiring
+// an extra package dependency. Swagger UI assets are loaded from the official CDN.
+app.get("/openapi.yaml", (_req, res) => {
+  res.sendFile("openapi.yaml", { root: "docs" });
+});
+app.get("/api-docs", (_req, res) => res.redirect(302, "/api-docs/"));
+app.get("/api-docs/", (_req, res) => {
+  res.type("html").send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SM Associate Cars API — Swagger UI</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+  <style>html{box-sizing:border-box;overflow-y:scroll}*,*:before,*:after{box-sizing:inherit}body{margin:0;background:#fafafa}</style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = function () {
+      window.ui = SwaggerUIBundle({
+        url: "/openapi.yaml",
+        dom_id: "#swagger-ui",
+        deepLinking: true,
+        displayRequestDuration: true,
+        presets: [SwaggerUIBundle.presets.apis],
+        layout: "BaseLayout"
+      });
+    };
+  </script>
+</body>
+</html>`);
+});
+
 // CORS is needed for browser-based clients (website, admin console, Swagger UI).
 // Native React Native requests do not send an Origin header, so they are not blocked.
 // WEB_ORIGIN supports a comma-separated allowlist, for example:
