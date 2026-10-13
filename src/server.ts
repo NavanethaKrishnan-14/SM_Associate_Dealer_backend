@@ -7,8 +7,12 @@ function getLanIPv4Addresses(): string[] {
   const addresses: string[] = [];
   for (const interfaces of Object.values(networkInterfaces())) {
     for (const address of interfaces ?? []) {
-      if (address.family === "IPv4" && !address.internal &&
-          /^(10\\.|192\\.168\\.|172\\.(1[6-9]|2[0-9]|3[01])\\.)/.test(address.address)) {
+      const octets = address.address.split(".").map(Number);
+      const isPrivateIPv4 =
+        octets[0] === 10 ||
+        (octets[0] === 192 && octets[1] === 168) ||
+        (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31);
+      if (address.family === "IPv4" && !address.internal && isPrivateIPv4) {
         addresses.push(address.address);
       }
     }
