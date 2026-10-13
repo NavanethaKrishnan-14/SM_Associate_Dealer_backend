@@ -1,13 +1,11 @@
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
-import { authenticate, requireRole } from "../../middleware/authenticate.js";
 import { asyncHandler } from "../../middleware/async-handler.js";
 import { HttpError } from "../../lib/http-error.js";
-import { User, Enquiry } from "../../lib/mongo.js";
+import { Enquiry } from "../../lib/mongo.js";
 
 export const sellCarRouter = Router();
-sellCarRouter.use(authenticate, requireRole("CUSTOMER"));
 
 const sellLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -38,9 +36,6 @@ sellCarRouter.post("/", sellLimit, asyncHandler(async (req, res) => {
     return;
   }
 
-  const customer = await User.findById(req.auth!.userId);
-  if (!customer || customer.status !== "ACTIVE") throw new HttpError(401, "Customer account not found or inactive.", "ACCOUNT_NOT_FOUND");
-
   const d = parsed.data;
   const vehicleDetails = [
     `Brand: ${d.brand}`,
@@ -55,7 +50,8 @@ sellCarRouter.post("/", sellLimit, asyncHandler(async (req, res) => {
   // Sell requests are stored as a lead in the existing Enquiry collection. carId and
   // dealerId are intentionally absent; this is an intake lead, not an enquiry on a listed car.
   const lead = await Enquiry.create({
-    customerId: customer.id,
+    contactName: d.contactName,
+    contactPhone: d.contactPhone,
     message: `SELL-CAR REQUEST\n${vehicleDetails}`,
     status: "OPEN",
     enquiryType: "SELL_CAR",
