@@ -182,3 +182,7 @@ app.use((_req, res) => {
 });
 
 app.use(errorHandler);
+
+// Export the Express server as default as well, so Vercel's Express detection
+// can recognize this module when it inspects src/app.js as an entry point.
+export default app;
