@@ -91,7 +91,7 @@ const corsOptions: import("cors").CorsOptions = {
     const normalizedOrigin = origin.replace(/\/$/, "");
     const isLocalDevelopment =
       env.NODE_ENV !== "production" &&
-      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(normalizedOrigin);
+      /^https?:\/\/(localhost|127\.0\.0\.1|192\.168(?:\.\d{1,3}){2}|10(?:\.\d{1,3}){3}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2})(:\d+)?$/i.test(normalizedOrigin);
 
     if (configuredOrigins.includes(normalizedOrigin) || isLocalDevelopment) {
       callback(null, true);
