@@ -43,7 +43,7 @@ app.use(helmet({
 app.get("/openapi.yaml", (_req, res) => {
   res.sendFile("openapi.yaml", { root: "docs" });
 });
-app.get("/api-docs/", (_req, res) => {
+app.get(/^\/api-docs\/?$/, (_req, res) => {
   res.type("html").send(`<!doctype html>
 <html lang="en">
 <head>
