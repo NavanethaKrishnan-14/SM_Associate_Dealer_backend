@@ -7,14 +7,17 @@ function getLanIPv4Addresses(): string[] {
   const addresses: string[] = [];
   for (const interfaces of Object.values(networkInterfaces())) {
     for (const address of interfaces ?? []) {
+      if (address.family !== "IPv4" || address.internal) continue;
       const octets = address.address.split(".").map(Number);
+      if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) continue;
+      const first = octets[0];
+      const second = octets[1];
+      if (first === undefined || second === undefined) continue;
       const isPrivateIPv4 =
-        octets[0] === 10 ||
-        (octets[0] === 192 && octets[1] === 168) ||
-        (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31);
-      if (address.family === "IPv4" && !address.internal && isPrivateIPv4) {
-        addresses.push(address.address);
-      }
+        first === 10 ||
+        (first === 192 && second === 168) ||
+        (first === 172 && second >= 16 && second <= 31);
+      if (isPrivateIPv4) addresses.push(address.address);
     }
   }
   return [...new Set(addresses)];
@@ -23,8 +26,7 @@ function getLanIPv4Addresses(): string[] {
 async function start() {
   await connectMongo();
 
-  // Explicitly bind to all interfaces so phones on the same Wi-Fi can reach
-  // the development API through the computer's LAN IPv4 address.
+  // Bind to all interfaces so phones on the same Wi-Fi can reach the API.
   const server = app.listen(env.PORT, "0.0.0.0", () => {
     const baseUrl = env.PUBLIC_API_URL ?? `http://localhost:${env.PORT}`;
     console.log(`SM Associate Cars API listening on port ${env.PORT} (${env.NODE_ENV}) — MongoDB connected`);
