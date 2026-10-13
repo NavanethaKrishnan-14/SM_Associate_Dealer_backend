@@ -70,3 +70,16 @@ This API now creates and reads data in MongoDB. It does **not** automatically co
 ## Mobile app flow
 
 The end-to-end mobile application journey, role permissions, screen structure, backend integration rules and release acceptance checklist are documented in [docs/MOBILE_APP_FLOW.md](docs/MOBILE_APP_FLOW.md). The screen-to-endpoint mapping, implementation sequence and identified API gaps are in [docs/MOBILE_API_IMPLEMENTATION_MAP.md](docs/MOBILE_API_IMPLEMENTATION_MAP.md).
+
+
+## API documentation (Swagger / OpenAPI)
+
+The API contract is maintained in [docs/openapi.yaml](docs/openapi.yaml) using OpenAPI 3.0, compatible with Swagger UI and Swagger Editor.
+
+To view and try the documented endpoints:
+1. Open https://editor.swagger.io/.
+2. Import `docs/openapi.yaml` from this repository.
+3. Replace the example server URL with your deployed backend origin followed by `/api/v1`.
+4. For protected endpoints, sign in first and use the returned access token as a Bearer token.
+
+The OpenAPI file documents the principal authentication, marketplace, dealer, customer and administration endpoints. Keep it in sync with route changes. Documentation describes the expected contract; it does not itself prove that a deployed service or its database is reachable.
