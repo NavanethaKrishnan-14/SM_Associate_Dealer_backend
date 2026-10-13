@@ -54,7 +54,7 @@ function hasValidImageSignature(buffer: Buffer, mimeType: string) {
 
 async function ownedCar(carId: string | string[] | undefined, userId: string) {
   const value = Array.isArray(carId) ? carId[0] : carId;
-  const parsed = z.string().uuid().safeParse(value);
+  const parsed = z.string().regex(/^(?:[A-Z]{3,4}-\\d{3,}|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i).safeParse(value);
   if (!parsed.success) throw new HttpError(400, "The car ID is invalid.", "INVALID_CAR_ID");
   const dealer = await Dealer.findOne({ userId });
   if (!dealer) throw new HttpError(403, "A dealer profile is required.", "DEALER_PROFILE_REQUIRED");
@@ -96,7 +96,7 @@ dealerImagesRouter.post("/:carId/images", upload.single("file"), asyncHandler(as
 
 dealerImagesRouter.delete("/:carId/images/:imageId", asyncHandler(async (req, res) => {
   const car = await ownedCar(req.params.carId, req.auth!.userId);
-  const parsed = z.string().uuid().safeParse(req.params.imageId);
+  const parsed = z.string().regex(/^(?:[A-Z]{3,4}-\\d{3,}|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i).safeParse(req.params.imageId);
   if (!parsed.success) throw new HttpError(400, "The image ID is invalid.", "INVALID_IMAGE_ID");
   const image = await CarImage.findOne({ _id: parsed.data, carId: car.id });
   if (!image) throw new HttpError(404, "Image not found for this vehicle.", "IMAGE_NOT_FOUND");
