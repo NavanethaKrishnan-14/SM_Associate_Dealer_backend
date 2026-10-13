@@ -21,6 +21,13 @@ import { sellCarRouter } from "./modules/enquiries/sell-car.routes.js";
 
 export const app = express();
 
+const docsRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.disable("x-powered-by");
 app.use(helmet({
   // Swagger UI loads its CSS/JS bundle from the CDN. Allow those assets while
@@ -40,10 +47,10 @@ app.use(helmet({
 
 // Serve the OpenAPI YAML file and a lightweight Swagger UI page without requiring
 // an extra package dependency. Swagger UI assets are loaded from the official CDN.
-app.get("/openapi.yaml", (_req, res) => {
+app.get("/openapi.yaml", docsRateLimiter, (_req, res) => {
   res.sendFile("openapi.yaml", { root: "docs" });
 });
-app.get(/^\/api-docs\/?$/, (_req, res) => {
+app.get(/^\/api-docs\/?$/, docsRateLimiter, (_req, res) => {
   res.type("html").send(`<!doctype html>
 <html lang="en">
 <head>
