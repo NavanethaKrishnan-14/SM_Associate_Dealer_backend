@@ -2,6 +2,9 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import swaggerUi from "swagger-ui-express";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { healthRouter } from "./routes/health.routes.js";
@@ -20,6 +23,15 @@ import { customerProfileRouter } from "./modules/users/customer-profile.routes.j
 import { sellCarRouter } from "./modules/enquiries/sell-car.routes.js";
 
 export const app = express();
+
+// Interactive Swagger UI for manually testing the API.
+app.get("/openapi.yaml", (_req, res) => {
+  res.type("text/yaml").send(readFileSync(resolve(process.cwd(), "docs/openapi.yaml"), "utf8"));
+});
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(undefined, {
+  swaggerOptions: { url: "/openapi.yaml", persistAuthorization: true },
+  customSiteTitle: "SM Associate Cars API — Swagger",
+}));
 
 app.disable("x-powered-by");
 app.use(helmet());
