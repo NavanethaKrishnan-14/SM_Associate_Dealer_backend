@@ -39,15 +39,18 @@ Versioned API root: `GET /api/v1`
 
 Vehicle image uploads accept JPG, PNG or WebP up to 10 MB per image, with at most 12 images per listing. Images are stored in MongoDB; no third-party image-storage credentials or server-local upload directory are required. Be mindful that image binaries increase database storage and outbound data usage.
 
-Dealer and listing ownership is checked by the API. Sold vehicle records are retained; delete requests archive inventory rather than removing transaction history. Admin endpoints require the ADMIN or SUPER_ADMIN role.
+Dealer and listing ownership is checked by the API. Sold vehicle records are retained; delete requests archive inventory rather than removing transaction history. All administration endpoints require the single ADMIN role. Admins can create additional administrator accounts from the mobile Admin dashboard; public Admin registration is disabled.
 
-## First super administrator
+## Initial Admin account
 
-1. Register an account using the app.
-2. Set `ADMIN_BOOTSTRAP_EMAIL` to that account's email and run `npm run admin:bootstrap` from a trusted workstation with the same MongoDB URI.
-3. Remove `ADMIN_BOOTSTRAP_EMAIL` from the shell/environment after the one-time command.
+The app has exactly three roles: `CUSTOMER`, `DEALER`, and `ADMIN`. Admin registration is not public. Seed the first Admin from a trusted workstation connected to the intended MongoDB database:
 
-The bootstrap refuses to run when an active super administrator already exists. Never commit real credentials or a `.env` file.
+1. Set `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PHONE`, and `ADMIN_PASSWORD` in your local shell environment. Use a unique email/phone and a password of at least 12 characters.
+2. Run `npm run admin:seed`.
+3. Sign in to the mobile app by choosing Admin and using those credentials.
+4. Use **Add an administrator** on the Admin dashboard to create any additional Admin accounts. All of them have the same `ADMIN` role.
+
+The seed command refuses to create another initial Admin if one already exists. It never prints the password. Do not add real credentials to `.env.example`, source control, or deployment logs.
 
 ## Deployment configuration
 
