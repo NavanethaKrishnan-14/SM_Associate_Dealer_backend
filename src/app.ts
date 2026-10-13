@@ -36,8 +36,13 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(undefined, {
 app.disable("x-powered-by");
 app.use(helmet());
 app.use(cors({
-  origin: env.WEB_ORIGIN,
+  // During local development Swagger and Expo may run on different localhost/LAN ports.
+  // In production, restrict browser access to the configured web origin.
+  origin: env.NODE_ENV === "development" ? true : env.WEB_ORIGIN,
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
 }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
