@@ -18,7 +18,9 @@ export default async function handler(req: Request, res: Response) {
     delete forwardedQuery.originalPath;
     const extraQuery = new URLSearchParams();
     for (const [key, value] of Object.entries(forwardedQuery)) {
-      if (Array.isArray(value)) value.forEach((item) => extraQuery.append(key, item));
+      if (Array.isArray(value)) value.forEach((item) => {
+        if (typeof item === "string") extraQuery.append(key, item);
+      });
       else if (typeof value === "string") extraQuery.append(key, value);
     }
     const queryString = [originalQuery, extraQuery.toString()].filter(Boolean).join("&");
