@@ -1,0 +1,606 @@
+openapi: 3.0.3
+info:
+  title: SM Associate Cars API
+  version: 1.0.0
+  description: |
+    OpenAPI specification for the SM Associate Cars customer app, dealer app,
+    marketplace website and administrator console. All API paths below are
+    relative to /api/v1. IDs may be prefixed sequential IDs (for example CAR-001)
+    or legacy UUIDs where the implementation accepts them.
+servers:
+  - url: https://YOUR_DEPLOYED_API_HOST/api/v1
+    description: Replace with the deployed backend API base URL
+  - url: http://localhost:5000/api/v1
+    description: Local development
+tags:
+  - name: Health
+  - name: Authentication
+  - name: Cars
+  - name: Dealer inventory
+  - name: Dealer images
+  - name: Favourites
+  - name: Enquiries
+  - name: Sell-car requests
+  - name: Test drives
+  - name: Notifications
+  - name: Customer profile
+  - name: Administration
+paths:
+  /:
+    get:
+      tags: [Health]
+      summary: API information
+      responses:
+        '200':
+          description: API is reachable
+  /health:
+    get:
+      tags: [Health]
+      summary: API and database health
+      responses:
+        '200':
+          description: Health response
+  /auth/register/customer:
+    post:
+      tags: [Authentication]
+      summary: Register a customer and create a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRegistration'
+      responses:
+        '201':
+          description: Customer registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionEnvelope'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+  /auth/register/dealer:
+    post:
+      tags: [Authentication]
+      summary: Register a dealer and create a session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DealerRegistration'
+      responses:
+        '201':
+          description: Dealer registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionEnvelope'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Sign in with phone number or email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, password]
+              properties:
+                identifier: {type: string, example: '9876543210'}
+                password: {type: string, minLength: 8}
+                role: {type: string, enum: [CUSTOMER, DEALER]}
+      responses:
+        '200': {description: Signed in; returns accessToken and refreshToken}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {description: Invalid credentials}
+        '403': {description: Inactive account or role mismatch}
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Rotate refresh token and issue a new access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: {type: string}
+      responses:
+        '200': {description: Tokens refreshed}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {description: Invalid or expired refresh token}
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Revoke a refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: {type: string}
+      responses:
+        '200': {description: Signed out}
+  /auth/me:
+    get:
+      tags: [Authentication]
+      security: [{bearerAuth: []}]
+      summary: Get the signed-in user
+      responses:
+        '200': {description: Current user}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /cars:
+    get:
+      tags: [Cars]
+      summary: Search approved, available car listings
+      parameters:
+        - {in: query, name: q, schema: {type: string}}
+        - {in: query, name: city, schema: {type: string}}
+        - {in: query, name: brand, schema: {type: string}}
+        - {in: query, name: model, schema: {type: string}}
+        - {in: query, name: fuelType, schema: {type: string, enum: [PETROL, DIESEL, CNG, ELECTRIC, HYBRID]}}
+        - {in: query, name: transmission, schema: {type: string, enum: [MANUAL, AUTOMATIC]}}
+        - {in: query, name: minPrice, schema: {type: number}}
+        - {in: query, name: maxPrice, schema: {type: number}}
+        - {in: query, name: minYear, schema: {type: integer}}
+        - {in: query, name: maxYear, schema: {type: integer}}
+        - {in: query, name: page, schema: {type: integer, minimum: 1, default: 1}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}
+      responses:
+        '200': {description: Paged car listings}
+  /cars/{id}:
+    get:
+      tags: [Cars]
+      summary: Get an available car listing
+      parameters:
+        - $ref: '#/components/parameters/RecordId'
+      responses:
+        '200': {description: Car details}
+        '404': {description: Car not found or unavailable}
+  /cars/images/{imageId}/content:
+    get:
+      tags: [Dealer images]
+      summary: Retrieve a listing photo
+      parameters:
+        - {in: path, name: imageId, required: true, schema: {$ref: '#/components/schemas/RecordId'}}
+      responses:
+        '200': {description: Image binary, content: {image/jpeg: {}, image/png: {}, image/webp: {}}}
+        '404': {description: Image not found}
+  /dealer/cars:
+    get:
+      tags: [Dealer inventory]
+      security: [{bearerAuth: []}]
+      summary: List the signed-in dealer's cars
+      responses:
+        '200': {description: Dealer inventory}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      tags: [Dealer inventory]
+      security: [{bearerAuth: []}]
+      summary: Create a car listing draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarInput'
+      responses:
+        '201': {description: Draft created}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+  /dealer/cars/{id}:
+    patch:
+      tags: [Dealer inventory]
+      security: [{bearerAuth: []}]
+      summary: Update a car listing owned by the signed-in dealer
+      parameters:
+        - $ref: '#/components/parameters/RecordId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarUpdate'
+      responses:
+        '200': {description: Listing updated}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {description: Listing not found}
+  /dealer/cars/{id}/status:
+    patch:
+      tags: [Dealer inventory]
+      security: [{bearerAuth: []}]
+      summary: Change listing status
+      parameters:
+        - $ref: '#/components/parameters/RecordId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: {type: string, enum: [DRAFT, PENDING_APPROVAL, RESERVED, SOLD, ARCHIVED]}
+      responses:
+        '200': {description: Status updated}
+        '409': {description: Invalid status transition}
+  /dealer/cars/{carId}/images:
+    post:
+      tags: [Dealer images]
+      security: [{bearerAuth: []}]
+      summary: Upload one car image (JPG, PNG or WebP; maximum 10 MB)
+      parameters:
+        - {in: path, name: carId, required: true, schema: {$ref: '#/components/schemas/RecordId'}}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+                isCover: {type: boolean}
+                sortOrder: {type: integer}
+      responses:
+        '201': {description: Image uploaded}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '413': {description: Image exceeds 10 MB}
+  /dealer/cars/{carId}/images/{imageId}:
+    delete:
+      tags: [Dealer images]
+      security: [{bearerAuth: []}]
+      summary: Delete a listing image
+      parameters:
+        - {in: path, name: carId, required: true, schema: {$ref: '#/components/schemas/RecordId'}}
+        - {in: path, name: imageId, required: true, schema: {$ref: '#/components/schemas/RecordId'}}
+      responses:
+        '200': {description: Image deleted}
+        '404': {description: Image not found}
+  /favorites:
+    get:
+      tags: [Favourites]
+      security: [{bearerAuth: []}]
+      summary: List saved cars
+      responses:
+        '200': {description: Saved cars}
+    post:
+      tags: [Favourites]
+      security: [{bearerAuth: []}]
+      summary: Save a car
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [carId]
+              properties:
+                carId: {$ref: '#/components/schemas/RecordId'}
+      responses:
+        '201': {description: Car saved}
+        '404': {description: Car unavailable}
+  /favorites/{carId}:
+    delete:
+      tags: [Favourites]
+      security: [{bearerAuth: []}]
+      summary: Remove a saved car
+      parameters:
+        - {in: path, name: carId, required: true, schema: {$ref: '#/components/schemas/RecordId'}}
+      responses:
+        '200': {description: Favourite removed}
+        '404': {description: Favourite not found}
+  /enquiries:
+    post:
+      tags: [Enquiries]
+      security: [{bearerAuth: []}]
+      summary: Enquire about a car
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [carId, message]
+              properties:
+                carId: {$ref: '#/components/schemas/RecordId'}
+                message: {type: string, minLength: 5, maxLength: 3000}
+      responses:
+        '201': {description: Enquiry created}
+        '404': {description: Car unavailable}
+  /enquiries/me:
+    get:
+      tags: [Enquiries]
+      security: [{bearerAuth: []}]
+      summary: List my enquiries
+      responses:
+        '200': {description: Customer enquiries}
+  /sell-car-requests:
+    post:
+      tags: [Sell-car requests]
+      security: [{bearerAuth: []}]
+      summary: Submit a sell-car request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contactName, contactPhone, city, brand, model]
+              properties:
+                contactName: {type: string}
+                contactPhone: {type: string}
+                city: {type: string}
+                brand: {type: string}
+                model: {type: string}
+                year: {type: integer}
+                kms: {type: integer}
+      responses:
+        '201': {description: Request submitted}
+  /test-drives:
+    post:
+      tags: [Test drives]
+      security: [{bearerAuth: []}]
+      summary: Request a test drive
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [carId, scheduledAt]
+              properties:
+                carId: {$ref: '#/components/schemas/RecordId'}
+                scheduledAt: {type: string, format: date-time}
+                notes: {type: string}
+      responses:
+        '201': {description: Test drive requested}
+  /test-drives/me:
+    get:
+      tags: [Test drives]
+      security: [{bearerAuth: []}]
+      summary: List my test drives
+      responses:
+        '200': {description: Test-drive bookings}
+  /notifications:
+    get:
+      tags: [Notifications]
+      security: [{bearerAuth: []}]
+      summary: List notifications
+      responses:
+        '200': {description: Notifications}
+  /users/me:
+    patch:
+      tags: [Customer profile]
+      security: [{bearerAuth: []}]
+      summary: Update my customer profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string}
+                phone: {type: string}
+                email: {type: string, format: email, nullable: true}
+      responses:
+        '200': {description: Profile updated}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /admin/dashboard:
+    get:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: Get administrator dashboard counts
+      responses:
+        '200': {description: Dashboard statistics}
+        '403': {description: Administrator role required}
+  /admin/dealers:
+    get:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: List dealers for moderation
+      responses:
+        '200': {description: Dealers and pagination}
+  /admin/dealers/{id}/verification:
+    patch:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: Update dealer verification
+      parameters:
+        - $ref: '#/components/parameters/RecordId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: {type: string, enum: [APPROVED, REJECTED, SUSPENDED]}
+                reason: {type: string}
+      responses:
+        '200': {description: Verification updated}
+        '404': {description: Dealer not found}
+  /admin/cars/pending:
+    get:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: List cars awaiting approval
+      responses:
+        '200': {description: Pending listings}
+  /admin/cars/{id}/moderation:
+    patch:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: Approve or reject a car
+      parameters:
+        - $ref: '#/components/parameters/RecordId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: {type: string, enum: [APPROVE, REJECT]}
+                reason: {type: string}
+      responses:
+        '200': {description: Moderation completed}
+        '409': {description: Listing is not pending or dealer is not approved}
+  /admin/users:
+    get:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: List users
+      responses:
+        '200': {description: Users and pagination}
+  /admin/users/{id}/status:
+    patch:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: Update user account status
+      parameters:
+        - $ref: '#/components/parameters/RecordId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: {type: string, enum: [ACTIVE, SUSPENDED, PENDING_VERIFICATION]}
+      responses:
+        '200': {description: User status updated}
+        '404': {description: User not found}
+  /admin/reports:
+    get:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: List car reports
+      responses:
+        '200': {description: Reports and pagination}
+  /admin/reports/{id}/status:
+    patch:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: Update car report status
+      parameters:
+        - $ref: '#/components/parameters/RecordId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: {type: string, enum: [UNDER_REVIEW, RESOLVED, DISMISSED]}
+      responses:
+        '200': {description: Report status updated}
+  /admin/audit-logs:
+    get:
+      tags: [Administration]
+      security: [{bearerAuth: []}]
+      summary: List administrator audit logs
+      responses:
+        '200': {description: Audit logs and pagination}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RecordId:
+      in: path
+      name: id
+      required: true
+      schema:
+        $ref: '#/components/schemas/RecordId'
+  schemas:
+    RecordId:
+      type: string
+      pattern: '^(?:[A-Z]{3,4}-[0-9]{3,}|[0-9a-fA-F-]{36})$'
+      example: CAR-001
+    CustomerRegistration:
+      type: object
+      required: [name, phone, password]
+      properties:
+        name: {type: string, minLength: 2, maxLength: 100}
+        phone: {type: string, pattern: '^\+?[0-9]{10,15}$', example: '9876543210'}
+        email: {type: string, format: email}
+        password: {type: string, minLength: 8, maxLength: 72}
+        confirmPassword: {type: string}
+    DealerRegistration:
+      allOf:
+        - $ref: '#/components/schemas/CustomerRegistration'
+        - type: object
+          required: [businessName, city]
+          properties:
+            businessName: {type: string, minLength: 2, maxLength: 120}
+            city: {type: string, minLength: 2, maxLength: 100}
+    SessionEnvelope:
+      type: object
+      properties:
+        success: {type: boolean, example: true}
+        data:
+          type: object
+          properties:
+            user: {type: object, additionalProperties: true}
+            accessToken: {type: string}
+            refreshToken: {type: string}
+            tokenType: {type: string, example: Bearer}
+            expiresIn: {type: integer}
+    CarInput:
+      type: object
+      required: [brand, model, priceInr, manufacturingYear, mileageKm, fuelType, transmission]
+      properties:
+        brand: {type: string}
+        model: {type: string}
+        variant: {type: string}
+        title: {type: string}
+        description: {type: string}
+        priceInr: {type: number, exclusiveMinimum: 0}
+        manufacturingYear: {type: integer}
+        registrationYear: {type: integer}
+        mileageKm: {type: integer, minimum: 0}
+        fuelType: {type: string, enum: [PETROL, DIESEL, CNG, ELECTRIC, HYBRID]}
+        transmission: {type: string, enum: [MANUAL, AUTOMATIC]}
+        city: {type: string}
+        state: {type: string, default: Tamil Nadu}
+    CarUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        title: {type: string}
+        variant: {type: string, nullable: true}
+        description: {type: string, nullable: true}
+        priceInr: {type: number, exclusiveMinimum: 0}
+        manufacturingYear: {type: integer}
+        registrationYear: {type: integer, nullable: true}
+        mileageKm: {type: integer, minimum: 0}
+        fuelType: {type: string, enum: [PETROL, DIESEL, CNG, ELECTRIC, HYBRID]}
+        transmission: {type: string, enum: [MANUAL, AUTOMATIC]}
+  responses:
+    BadRequest:
+      description: Invalid request body or parameters
+    Unauthorized:
+      description: Authentication required or token invalid
+    Conflict:
+      description: Account already exists or request conflicts with current data
+    RateLimited:
+      description: Too many requests; wait before retrying
