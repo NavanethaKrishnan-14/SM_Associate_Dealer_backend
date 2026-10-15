@@ -36,6 +36,10 @@ const notificationSchema = new Schema({ _id: id, userId: { type: String, ref: "U
 const reportSchema = new Schema({ _id: id, carId: { type: String, ref: "Car", required: true }, reporterId: { type: String, ref: "User", required: true }, reason: { type: String, required: true }, details: String, status: { type: String, default: "OPEN" }, resolvedAt: Date }, opts);
 const refreshSchema = new Schema({ _id: id, userId: { type: String, ref: "User", required: true }, tokenHash: { type: String, required: true, unique: true }, expiresAt: { type: Date, required: true }, revokedAt: Date }, opts);
 refreshSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+const expenseSchema = new Schema({ _id: id, dealerId: { type: String, ref: "Dealer", required: true }, carId: { type: String, ref: "Car", required: true }, category: { type: String, required: true }, amount: { type: Number, required: true, min: 0.01 }, note: String }, opts);
+expenseSchema.index({ dealerId: 1, carId: 1, createdAt: -1 });
+const saleSchema = new Schema({ _id: id, dealerId: { type: String, ref: "Dealer", required: true }, carId: { type: String, ref: "Car", required: true, unique: true }, salePrice: { type: Number, required: true, min: 0.01 }, acquisitionCost: { type: Number, required: true, min: 0 }, expensesTotal: { type: Number, required: true, min: 0 }, profit: { type: Number, required: true }, soldAt: { type: Date, required: true } }, opts);
+saleSchema.index({ dealerId: 1, soldAt: -1 });
 const auditSchema = new Schema({ _id: id, actorId: { type: String, ref: "User" }, action: String, entityType: String, entityId: String, details: Schema.Types.Mixed }, opts);
 
 assignId(userSchema, (doc) => doc.role === "DEALER" ? "DLR" : doc.role === "ADMIN" ? "ADM" : "CUS");
@@ -51,6 +55,8 @@ assignId(notificationSchema, () => "NOT");
 assignId(reportSchema, () => "RPT");
 assignId(refreshSchema, () => "RFT");
 assignId(auditSchema, () => "AUD");
+assignId(expenseSchema, () => "EXP");
+assignId(saleSchema, () => "SAL");
 export const User = make("User", userSchema);
 export const Dealer = make("Dealer", dealerSchema);
 export const Brand = make("Brand", brandSchema);
@@ -64,10 +70,12 @@ export const Notification = make("Notification", notificationSchema);
 export const CarReport = make("CarReport", reportSchema);
 export const RefreshToken = make("RefreshToken", refreshSchema);
 export const AuditLog = make("AuditLog", auditSchema);
+export const VehicleExpense = make("VehicleExpense", expenseSchema);
+export const VehicleSale = make("VehicleSale", saleSchema);
 export async function connectMongo() {
   if (!env.MONGODB_URI) throw new Error("MONGODB_URI is required.");
   await mongoose.connect(env.MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
-  await Promise.all([User.init(), Dealer.init(), Brand.init(), CarModel.init(), Car.init(), CarImage.init(), Favorite.init(), Enquiry.init(), TestDrive.init(), Notification.init(), CarReport.init(), RefreshToken.init(), AuditLog.init()]);
+  await Promise.all([User.init(), Dealer.init(), Brand.init(), CarModel.init(), Car.init(), CarImage.init(), Favorite.init(), Enquiry.init(), TestDrive.init(), Notification.init(), CarReport.init(), RefreshToken.init(), AuditLog.init(), VehicleExpense.init(), VehicleSale.init()]);
 }
 export async function disconnectMongo() { await mongoose.disconnect(); }
 export function serialize<T extends Record<string, any>>(doc: T): any {
