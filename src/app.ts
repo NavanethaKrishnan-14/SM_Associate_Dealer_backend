@@ -11,6 +11,7 @@ import { authRouter } from "./modules/auth/auth.routes.js";
 import { dealerCarsRouter } from "./modules/dealer/dealer-cars.routes.js";
 import { dealerImagesRouter } from "./modules/dealer/dealer-images.routes.js";
 import { dealerFinanceRouter } from "./modules/dealer/dealer-finance.routes.js";
+import { reportsRouter } from "./modules/reports/reports.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
 import { favoritesRouter } from "./modules/favorites/favorites.routes.js";
 import { customerEnquiriesRouter } from "./modules/enquiries/customer-enquiries.routes.js";
@@ -177,6 +178,7 @@ app.use(`${env.API_BASE_PATH}/dealer/enquiries`, dealerEnquiriesRouter);
 app.use(`${env.API_BASE_PATH}/test-drives`, customerTestDrivesRouter);
 app.use(`${env.API_BASE_PATH}/dealer/test-drives`, dealerTestDrivesRouter);
 app.use(`${env.API_BASE_PATH}/notifications`, notificationsRouter);
+app.use(`${env.API_BASE_PATH}/reports`, reportsRouter);
 app.use(`${env.API_BASE_PATH}/users`, customerProfileRouter);
 
 app.get(env.API_BASE_PATH, (_req, res) => {
