@@ -86,3 +86,24 @@ To view and try the documented endpoints:
 4. For protected endpoints, sign in first and use the returned access token as a Bearer token.
 
 The OpenAPI file documents the principal authentication, marketplace, dealer, customer and administration endpoints. Keep it in sync with route changes. Documentation describes the expected contract; it does not itself prove that a deployed service or its database is reachable.
+
+
+## Demo marketplace data
+
+For a **development or test database only**, set `MONGODB_URI` in your local `.env` to the database you intend to populate, then run:
+
+```bash
+npm install
+npm run seed:demo
+```
+
+The seed is additive and idempotent: it creates sample dealers, customers, approved and pending car listings, a sold car, catalogue brands/models, favourites, enquiries, a test-drive request, notifications, a moderation report, vehicle expenses and a sale record. It preserves existing records and does not clear collections.
+
+Demo accounts (same password for each): `Demo@12345!A`
+
+- Dealer: `demo.dealer@smassociate.test`
+- Dealer: `demo.dealer2@smassociate.test`
+- Customer: `demo.customer@smassociate.test`
+- Customer: `demo.customer2@smassociate.test`
+
+**Important:** Verify `MONGODB_URI` before running the command. Do not run this against production; change or remove the demo accounts before production use. The script runs on your machine and writes to the MongoDB database named in that connection string.
