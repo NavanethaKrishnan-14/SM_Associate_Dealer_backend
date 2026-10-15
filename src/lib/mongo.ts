@@ -42,8 +42,6 @@ const saleSchema = new Schema({ _id: id, dealerId: { type: String, ref: "Dealer"
 saleSchema.index({ dealerId: 1, soldAt: -1 });
 const auditSchema = new Schema({ _id: id, actorId: { type: String, ref: "User" }, action: String, entityType: String, entityId: String, details: Schema.Types.Mixed }, opts);
 
-userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
-userSchema.index({ facebookId: 1 }, { unique: true, sparse: true });
 assignId(userSchema, (doc) => doc.role === "DEALER" ? "DLR" : doc.role === "ADMIN" ? "ADM" : "CUS");
 assignId(dealerSchema, () => "DLP");
 assignId(brandSchema, () => "BRD");
