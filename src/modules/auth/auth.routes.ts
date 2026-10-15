@@ -126,7 +126,7 @@ authRouter.post("/google", loginLimiter, asyncHandler(async (req, res) => {
   }
   const data = await establishSocialSession({
     provider: "google", providerId: payload.sub, email: payload.email, name: payload.name ?? "",
-    role: parsed.data.role, businessName: parsed.data.businessName, city: parsed.data.city,
+    role: parsed.data.role, ...(parsed.data.businessName ? { businessName: parsed.data.businessName } : {}), ...(parsed.data.city ? { city: parsed.data.city } : {}),
   });
   res.status(200).json({ success: true, data });
 }));
@@ -155,8 +155,8 @@ authRouter.post("/facebook", loginLimiter, asyncHandler(async (req, res) => {
   const profile = await profileResponse.json() as { id?: string; name?: string; email?: string };
   if (!profile.id || profile.id !== tokenInfo.user_id) throw new HttpError(401, "Facebook profile does not match the verified token.", "INVALID_FACEBOOK_PROFILE");
   const data = await establishSocialSession({
-    provider: "facebook", providerId: profile.id, email: profile.email, name: profile.name ?? "",
-    role: parsed.data.role, businessName: parsed.data.businessName, city: parsed.data.city,
+    provider: "facebook", providerId: profile.id, ...(profile.email ? { email: profile.email } : {}), name: profile.name ?? "",
+    role: parsed.data.role, ...(parsed.data.businessName ? { businessName: parsed.data.businessName } : {}), ...(parsed.data.city ? { city: parsed.data.city } : {}),
   });
   res.status(200).json({ success: true, data });
 }));
