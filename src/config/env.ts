@@ -9,6 +9,9 @@ const envSchema = z.object({
   // Public origin used to construct links to uploaded images. Never derive production URLs from the Host header.
   PUBLIC_API_URL: z.string().url().default("https://sm-associate-dealer-backend-sand.vercel.app").transform((value) => value.replace(/\/+$/, "")),
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
+  GOOGLE_CLIENT_IDS: z.string().optional().default(""),
+  FACEBOOK_APP_ID: z.string().optional().default(""),
+  FACEBOOK_APP_SECRET: z.string().optional().default(""),
   JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
   JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
   REFRESH_TOKEN_DAYS: z.coerce.number().int().min(1).max(90).default(30),
