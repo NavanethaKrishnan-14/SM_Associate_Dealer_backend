@@ -17,7 +17,7 @@ import {
   VehicleSale,
 } from "../src/lib/mongo.js";
 
-const DEMO_PASSWORD = "Demo@12345!";
+const DEMO_PASSWORD = "Demo@12345!A";
 
 async function getOrCreate<T extends { _id: unknown }>(
   model: any,
