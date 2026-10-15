@@ -7,7 +7,7 @@ const envSchema = z.object({
   API_BASE_PATH: z.string().startsWith("/").default("/api/v1"),
   WEB_ORIGIN: z.string().url().default("https://localhost"),
   // Public origin used to construct links to uploaded images. Never derive production URLs from the Host header.
-  PUBLIC_API_URL: z.string().url().optional().transform((value) => value?.replace(/\/+$/, "")),
+  PUBLIC_API_URL: z.string().url().default("https://sm-associate-dealer-backend-sand.vercel.app").transform((value) => value.replace(/\/+$/, "")),
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
   JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(900),
