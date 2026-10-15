@@ -21,7 +21,7 @@ function assignId(schema: Schema, prefixFor: (doc: any) => string) {
 }
 const opts: any = { timestamps: true, versionKey: false, strict: false, minimize: false, toJSON: { virtuals: true, transform: (_doc: unknown, ret: Record<string, any>) => { if (ret._id !== undefined) { ret.id = String(ret._id); delete ret._id; } delete ret.__v; return ret; } }, toObject: { virtuals: true } };
 const make = (name: string, schema: Schema): any => (mongoose.models[name] as Model<any>) ?? mongoose.model(name, schema);
-const userSchema = new Schema({ _id: id, name: { type: String, required: true }, email: { type: String, unique: true, sparse: true, lowercase: true }, phone: { type: String, required: true, unique: true }, passwordHash: { type: String, required: true }, role: { type: String, enum: ["CUSTOMER","DEALER","ADMIN"], default: "CUSTOMER" }, status: { type: String, enum: ["ACTIVE","SUSPENDED","PENDING_VERIFICATION"], default: "ACTIVE" } }, opts);
+const userSchema = new Schema({ _id: id, name: { type: String, required: true }, email: { type: String, unique: true, sparse: true, lowercase: true }, phone: { type: String, required: false, unique: true, sparse: true }, passwordHash: { type: String, required: false }, googleId: { type: String, unique: true, sparse: true }, facebookId: { type: String, unique: true, sparse: true }, role: { type: String, enum: ["CUSTOMER","DEALER","ADMIN"], default: "CUSTOMER" }, status: { type: String, enum: ["ACTIVE","SUSPENDED","PENDING_VERIFICATION"], default: "ACTIVE" } }, opts);
 const dealerSchema = new Schema({ _id: id, userId: { type: String, ref: "User", required: true, unique: true }, businessName: { type: String, required: true }, description: String, addressLine: String, city: { type: String, required: true }, state: { type: String, default: "Tamil Nadu" }, postalCode: String, verificationStatus: { type: String, enum: ["PENDING","APPROVED","REJECTED","SUSPENDED"], default: "PENDING" }, verifiedAt: Date }, opts);
 const brandSchema = new Schema({ _id: id, name: { type: String, required: true, unique: true }, slug: { type: String, required: true, unique: true } }, opts);
 const modelSchema = new Schema({ _id: id, brandId: { type: String, ref: "Brand", required: true }, name: { type: String, required: true }, slug: { type: String, required: true } }, opts);
@@ -42,6 +42,8 @@ const saleSchema = new Schema({ _id: id, dealerId: { type: String, ref: "Dealer"
 saleSchema.index({ dealerId: 1, soldAt: -1 });
 const auditSchema = new Schema({ _id: id, actorId: { type: String, ref: "User" }, action: String, entityType: String, entityId: String, details: Schema.Types.Mixed }, opts);
 
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+userSchema.index({ facebookId: 1 }, { unique: true, sparse: true });
 assignId(userSchema, (doc) => doc.role === "DEALER" ? "DLR" : doc.role === "ADMIN" ? "ADM" : "CUS");
 assignId(dealerSchema, () => "DLP");
 assignId(brandSchema, () => "BRD");
