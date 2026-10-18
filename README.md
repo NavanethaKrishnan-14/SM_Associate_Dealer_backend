@@ -11,6 +11,14 @@ Shared REST API for the SM Associate Cars customer app, dealer app, public websi
 - JWT access tokens and hashed, rotating refresh tokens
 - GitHub Actions typecheck and build validation
 
+## Automated tests
+
+Run `npm test` to execute the API integration suite against an ephemeral MongoDB instance. The suite checks health, customer registration/login, role mismatch, session refresh rotation and revocation, provider-not-configured errors, and browser CORS preflight. GitHub Actions runs tests, TypeScript checks and the production build on pushes and pull requests.
+
+## Social authentication
+
+The backend exposes `POST /api/v1/auth/google` and `POST /api/v1/auth/facebook`. Configure `GOOGLE_CLIENT_IDS` as a comma-separated allowlist of Google client IDs accepted for ID-token audiences, and set `FACEBOOK_APP_ID` plus the server-only `FACEBOOK_APP_SECRET`. Provider tokens are verified server-side before the API issues its own access and refresh tokens. See the mobile repository's `docs/SOCIAL_AUTH_SETUP.md` for provider-console and app configuration. Never put the Facebook App Secret in the mobile app.
+
 ## Local development
 
 1. Create a MongoDB database using MongoDB Atlas or a local MongoDB server.
