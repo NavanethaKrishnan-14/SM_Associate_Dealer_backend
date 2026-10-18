@@ -72,10 +72,46 @@ export const RefreshToken = make("RefreshToken", refreshSchema);
 export const AuditLog = make("AuditLog", auditSchema);
 export const VehicleExpense = make("VehicleExpense", expenseSchema);
 export const VehicleSale = make("VehicleSale", saleSchema);
+/**
+ * Reconcile legacy indexes before Mongoose runs auto-index creation.
+ *
+ * Older deployments may have created a unique, non-sparse phone_1 index.
+ * The current schema intentionally uses a sparse unique phone index because
+ * phone is optional for some account flows. MongoDB rejects createIndex when
+ * the same index name/key already exists with different options.
+ *
+ * Only drop the exact conflicting index; no user documents are modified.
+ */
+async function reconcileLegacyUserIndexes() {
+  const indexes = await User.collection.indexes();
+  const phoneIndex = indexes.find(
+    (index) =>
+      index.name === "phone_1" &&
+      index.unique === true &&
+      index.key &&
+      Object.keys(index.key).length === 1 &&
+      index.key.phone === 1 &&
+      index.sparse !== true,
+  );
+
+  if (phoneIndex?.name) {
+    console.warn(
+      'Reconciling legacy MongoDB index "phone_1" (unique, non-sparse) to match the current sparse unique schema.',
+    );
+    await User.collection.dropIndex(phoneIndex.name);
+  }
+}
+
 export async function connectMongo() {
   if (!env.MONGODB_URI) throw new Error("MONGODB_URI is required.");
   await mongoose.connect(env.MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
-  await Promise.all([User.init(), Dealer.init(), Brand.init(), CarModel.init(), Car.init(), CarImage.init(), Favorite.init(), Enquiry.init(), TestDrive.init(), Notification.init(), CarReport.init(), RefreshToken.init(), AuditLog.init(), VehicleExpense.init(), VehicleSale.init()]);
+  try {
+    await reconcileLegacyUserIndexes();
+    await Promise.all([User.init(), Dealer.init(), Brand.init(), CarModel.init(), Car.init(), CarImage.init(), Favorite.init(), Enquiry.init(), TestDrive.init(), Notification.init(), CarReport.init(), RefreshToken.init(), AuditLog.init(), VehicleExpense.init(), VehicleSale.init()]);
+  } catch (error) {
+    await mongoose.disconnect().catch(() => undefined);
+    throw error;
+  }
 }
 export async function disconnectMongo() { await mongoose.disconnect(); }
 export function serialize<T extends Record<string, any>>(doc: T): any {
