@@ -101,10 +101,15 @@ async function reconcileLegacyUserIndexes() {
   }
 
   const phoneIndex = indexes.find(
-    (index) =>
+    (index: {
+      name?: string;
+      unique?: boolean;
+      key?: Record<string, unknown>;
+      sparse?: boolean;
+    }) =>
       index.name === "phone_1" &&
       index.unique === true &&
-      index.key &&
+      index.key !== undefined &&
       Object.keys(index.key).length === 1 &&
       index.key.phone === 1 &&
       index.sparse !== true,
