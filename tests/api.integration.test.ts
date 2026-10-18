@@ -5,6 +5,8 @@ import request from "supertest";
 let app: any;
 let mongo: any;
 let disconnectMongo: (() => Promise<void>) | undefined;
+let runtimeEnv: any;
+const originalFetch = globalThis.fetch;
 
 before(async () => {
   process.env.NODE_ENV = "test";
@@ -23,12 +25,50 @@ before(async () => {
 
   const serverModule = await import("../src/app.js");
   app = serverModule.app;
+  runtimeEnv = (await import("../src/config/env.js")).env;
   const mongoModule = await import("../src/lib/mongo.js");
   disconnectMongo = mongoModule.disconnectMongo;
   await mongoModule.connectMongo();
+
+  // Mock only the external identity-provider endpoints. API routing, validation,
+  // MongoDB persistence, token issuance and session middleware remain real.
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
+    if (url.hostname === "oauth2.googleapis.com" && url.pathname === "/tokeninfo") {
+      if (url.searchParams.get("id_token") !== "valid-google-id-token-for-integration-tests") {
+        return new Response(JSON.stringify({ error: "invalid_token" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+      return Response.json({
+        sub: "google-provider-user-001",
+        aud: "google-client-test",
+        iss: "https://accounts.google.com",
+        exp: String(Math.floor(Date.now() / 1000) + 3600),
+        email: "google.integration@example.test",
+        email_verified: true,
+        name: "Google Integration User",
+      });
+    }
+    if (url.hostname === "graph.facebook.com" && url.pathname === "/debug_token") {
+      const valid = url.searchParams.get("input_token") === "valid-facebook-access-token-for-integration-tests";
+      return Response.json({ data: valid ? {
+        app_id: "facebook-app-test",
+        is_valid: true,
+        user_id: "facebook-provider-user-001",
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+      } : { app_id: "facebook-app-test", is_valid: false, user_id: "invalid", expires_at: 0 } });
+    }
+    if (url.hostname === "graph.facebook.com" && url.pathname === "/me") {
+      if (url.searchParams.get("access_token") !== "valid-facebook-access-token-for-integration-tests") {
+        return new Response(JSON.stringify({ error: "invalid_token" }), { status: 401, headers: { "Content-Type": "application/json" } });
+      }
+      return Response.json({ id: "facebook-provider-user-001", name: "Facebook Integration User", email: "facebook.integration@example.test" });
+    }
+    return originalFetch(input, init);
+  }) as typeof fetch;
 });
 
 after(async () => {
+  globalThis.fetch = originalFetch;
   if (disconnectMongo) await disconnectMongo();
   if (mongo) await mongo.stop();
 });
@@ -105,7 +145,7 @@ test("customer can register, sign in, refresh a session, and sign out", async ()
   assert.equal(afterLogout.status, 401);
 });
 
-test("Google sign-in fails safely when provider credentials are not configured", async () => {
+test("Google sign-in rejects missing provider configuration safely", async () => {
   const response = await request(app)
     .post("/api/v1/auth/google")
     .send({ idToken: "fake-but-long-enough-google-id-token", role: "CUSTOMER" });
@@ -113,12 +153,60 @@ test("Google sign-in fails safely when provider credentials are not configured",
   assert.equal(response.body.error.code, "GOOGLE_SSO_NOT_CONFIGURED");
 });
 
-test("Facebook sign-in fails safely when provider credentials are not configured", async () => {
+test("Google sign-in verifies the ID token and issues an API session", async () => {
+  runtimeEnv.GOOGLE_CLIENT_IDS = "google-client-test";
+  const response = await request(app)
+    .post("/api/v1/auth/google")
+    .send({ idToken: "valid-google-id-token-for-integration-tests", role: "CUSTOMER" });
+  assert.equal(response.status, 200, JSON.stringify(response.body));
+  assert.equal(response.body.data.user.email, "google.integration@example.test");
+  assert.equal(response.body.data.user.role, "CUSTOMER");
+  assert.ok(response.body.data.accessToken);
+  assert.ok(response.body.data.refreshToken);
+
+  const currentUser = await request(app)
+    .get("/api/v1/auth/me")
+    .set("Authorization", `Bearer ${response.body.data.accessToken}`);
+  assert.equal(currentUser.status, 200);
+  assert.equal(currentUser.body.data.id, response.body.data.user.id);
+
+  const roleMismatch = await request(app)
+    .post("/api/v1/auth/google")
+    .send({ idToken: "valid-google-id-token-for-integration-tests", role: "DEALER", businessName: "Test Dealer", city: "Tirunelveli" });
+  assert.equal(roleMismatch.status, 403);
+  assert.equal(roleMismatch.body.error.code, "ROLE_MISMATCH");
+});
+
+test("Google sign-in rejects invalid provider tokens", async () => {
+  runtimeEnv.GOOGLE_CLIENT_IDS = "google-client-test";
+  const response = await request(app)
+    .post("/api/v1/auth/google")
+    .send({ idToken: "invalid-google-id-token-for-integration-tests", role: "CUSTOMER" });
+  assert.equal(response.status, 401);
+  assert.equal(response.body.error.code, "INVALID_GOOGLE_TOKEN");
+});
+
+test("Facebook sign-in verifies the access token and issues an API session", async () => {
+  runtimeEnv.FACEBOOK_APP_ID = "facebook-app-test";
+  runtimeEnv.FACEBOOK_APP_SECRET = "facebook-secret-test";
   const response = await request(app)
     .post("/api/v1/auth/facebook")
-    .send({ accessToken: "fake-but-long-enough-facebook-access-token", role: "CUSTOMER" });
-  assert.equal(response.status, 503);
-  assert.equal(response.body.error.code, "FACEBOOK_SSO_NOT_CONFIGURED");
+    .send({ accessToken: "valid-facebook-access-token-for-integration-tests", role: "CUSTOMER" });
+  assert.equal(response.status, 200, JSON.stringify(response.body));
+  assert.equal(response.body.data.user.email, "facebook.integration@example.test");
+  assert.equal(response.body.data.user.role, "CUSTOMER");
+  assert.ok(response.body.data.accessToken);
+  assert.ok(response.body.data.refreshToken);
+});
+
+test("Facebook sign-in rejects invalid provider tokens", async () => {
+  runtimeEnv.FACEBOOK_APP_ID = "facebook-app-test";
+  runtimeEnv.FACEBOOK_APP_SECRET = "facebook-secret-test";
+  const response = await request(app)
+    .post("/api/v1/auth/facebook")
+    .send({ accessToken: "invalid-facebook-access-token-for-integration-tests", role: "CUSTOMER" });
+  assert.equal(response.status, 401);
+  assert.equal(response.body.error.code, "INVALID_FACEBOOK_TOKEN");
 });
 
 test("browser CORS preflight is handled for the configured website origin", async () => {
