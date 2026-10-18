@@ -16,7 +16,8 @@
     "migrate:prefixed-ids": "tsx scripts/migrate-prefixed-ids.ts",
     "audit:object-ids": "tsx scripts/audit-object-ids.ts",
     "admin:seed": "tsx scripts/bootstrap-admin.ts",
-    "seed:demo": "tsx scripts/seed-demo-data.ts"
+    "seed:demo": "tsx scripts/seed-demo-data.ts",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -37,6 +38,9 @@
     "@types/multer": "^2.0.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "@types/jsonwebtoken": "^9.0.10"
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/supertest": "^6.0.3",
+    "mongodb-memory-server": "^10.2.0",
+    "supertest": "^7.1.4"
   }
 }
