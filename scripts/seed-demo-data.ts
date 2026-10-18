@@ -65,6 +65,14 @@ async function main() {
     role: "CUSTOMER",
     status: "ACTIVE",
   });
+  const customer3 = await getOrCreate(User, { email: "demo.customer3@smassociate.test" }, {
+    name: "Demo Customer Three",
+    email: "demo.customer3@smassociate.test",
+    phone: "9000000105",
+    passwordHash,
+    role: "CUSTOMER",
+    status: "ACTIVE",
+  });
 
   const dealer1 = await getOrCreate(Dealer, { userId: dealerUser1.id }, {
     userId: dealerUser1.id,
@@ -128,6 +136,7 @@ async function main() {
     { key: "city-vx-2020-sold", dealer: dealer1, model: "City", title: "2020 Honda City VX (Demo Sold)", priceInr: 825000, year: 2020, km: 52000, fuel: "PETROL", transmission: "MANUAL", color: "Modern Steel Metallic", ownership: 2, status: "SOLD" },
     { key: "nexon-xz-2022", dealer: dealer2, model: "Nexon", title: "2022 Tata Nexon XZ+", priceInr: 890000, year: 2022, km: 33500, fuel: "PETROL", transmission: "MANUAL", color: "Daytona Grey", ownership: 1, status: "PENDING_APPROVAL" },
     { key: "i20-sportz-2021-draft", dealer: dealer1, model: "i20", title: "2021 Hyundai i20 Sportz (Draft)", priceInr: 710000, year: 2021, km: 38000, fuel: "PETROL", transmission: "MANUAL", color: "Fiery Red", ownership: 1, status: "DRAFT" },
+    { key: "swift-vxi-2021-reserved", dealer: dealer2, model: "Swift", title: "2021 Maruti Suzuki Swift VXi (Reserved)", priceInr: 575000, year: 2021, km: 44500, fuel: "PETROL", transmission: "MANUAL", color: "Solid Fire Red", ownership: 2, status: "RESERVED" },
   ];
 
   const carsByKey = new Map<string, any>();
@@ -156,6 +165,7 @@ async function main() {
       status: spec.status,
       ...(spec.status === "AVAILABLE" ? { publishedAt: new Date() } : {}),
       ...(spec.status === "SOLD" ? { soldAt: new Date() } : {}),
+      ...(spec.status === "RESERVED" ? { reservedAt: new Date() } : {}),
     });
     carsByKey.set(spec.key, car);
   }
@@ -163,10 +173,13 @@ async function main() {
   const swift = carsByKey.get("swift-vxi-2022");
   const dzire = carsByKey.get("dzire-vxi-2024");
   const soldCity = carsByKey.get("city-vx-2020-sold");
+  const reservedSwift = carsByKey.get("swift-vxi-2021-reserved");
+  const creta = carsByKey.get("creta-sx-2023");
   const now = Date.now();
 
   await getOrCreate(Favorite, { userId: customer1.id, carId: swift.id }, { userId: customer1.id, carId: swift.id });
   await getOrCreate(Favorite, { userId: customer2.id, carId: dzire.id }, { userId: customer2.id, carId: dzire.id });
+  await getOrCreate(Favorite, { userId: customer3.id, carId: creta.id }, { userId: customer3.id, carId: creta.id });
   await getOrCreate(Enquiry, { customerId: customer1.id, carId: dzire.id, message: "Demo enquiry: is the vehicle available for inspection?" }, {
     customerId: customer1.id, contactName: customer1.name, contactPhone: customer1.phone,
     dealerId: dealer1.id, carId: dzire.id, message: "Demo enquiry: is the vehicle available for inspection?",
@@ -177,10 +190,37 @@ async function main() {
     dealerId: dealer1.id, carId: swift.id, message: "Demo enquiry: can I arrange a test drive?",
     enquiryType: "CAR_ENQUIRY", status: "CONTACTED", contactedAt: new Date(),
   });
+  await getOrCreate(Enquiry, { customerId: customer3.id, carId: creta.id, message: "Demo enquiry: can you share the service history?" }, {
+    customerId: customer3.id, contactName: customer3.name, contactPhone: customer3.phone,
+    dealerId: dealer2.id, carId: creta.id, message: "Demo enquiry: can you share the service history?",
+    enquiryType: "CAR_ENQUIRY", status: "IN_PROGRESS", contactedAt: new Date(),
+  });
+  const sellCarSamples = [
+    { contactName: "Demo Seller Lead One", contactPhone: "9000000111", message: "SELL-CAR REQUEST\nDemo seed record: Maruti Suzuki Alto, 2018, 62000 km, Tirunelveli." },
+    { contactName: "Demo Seller Lead Two", contactPhone: "9000000112", message: "SELL-CAR REQUEST\nDemo seed record: Hyundai Grand i10, 2020, 41000 km, Madurai." },
+    { contactName: "Demo Seller Lead Three", contactPhone: "9000000113", message: "SELL-CAR REQUEST\nDemo seed record: Honda Amaze, 2019, 55000 km, Tirunelveli." },
+  ];
+  for (const lead of sellCarSamples) {
+    await getOrCreate(Enquiry, { enquiryType: "SELL_CAR", contactPhone: lead.contactPhone }, {
+      ...lead,
+      enquiryType: "SELL_CAR",
+      status: lead.contactPhone === "9000000112" ? "CONTACTED" : "OPEN",
+    });
+  }
   await getOrCreate(TestDrive, { customerId: customer1.id, carId: swift.id }, {
     customerId: customer1.id, carId: swift.id, dealerId: dealer1.id,
     scheduledAt: new Date(now + 3 * 24 * 60 * 60 * 1000), status: "REQUESTED",
     notes: "Demo test-drive booking. Please confirm the time with the customer.",
+  });
+  await getOrCreate(TestDrive, { customerId: customer2.id, carId: dzire.id }, {
+    customerId: customer2.id, carId: dzire.id, dealerId: dealer1.id,
+    scheduledAt: new Date(now + 5 * 24 * 60 * 60 * 1000), status: "CONFIRMED",
+    notes: "Demo confirmed test drive. Contact customer before arrival.",
+  });
+  await getOrCreate(TestDrive, { customerId: customer3.id, carId: creta.id }, {
+    customerId: customer3.id, carId: creta.id, dealerId: dealer2.id,
+    scheduledAt: new Date(now - 2 * 24 * 60 * 60 * 1000), status: "COMPLETED",
+    notes: "Demo completed test drive.",
   });
   await getOrCreate(Notification, { userId: customer1.id, title: "Welcome to SM Associate Cars" }, {
     userId: customer1.id, title: "Welcome to SM Associate Cars",
@@ -191,6 +231,17 @@ async function main() {
     userId: dealerUser1.id, title: "New demo enquiry received",
     body: "A customer has enquired about the 2024 Maruti Suzuki Dzire VXi.",
     data: { carId: dzire.id, demo: true },
+  });
+  await getOrCreate(Notification, { userId: customer2.id, title: "Demo test drive confirmed" }, {
+    userId: customer2.id, title: "Demo test drive confirmed",
+    body: "Your sample test-drive request for the 2024 Maruti Suzuki Dzire VXi has been confirmed.",
+    data: { carId: dzire.id, demo: true },
+  });
+  await getOrCreate(Notification, { userId: dealerUser2.id, title: "Demo test drive completed" }, {
+    userId: dealerUser2.id, title: "Demo test drive completed",
+    body: "A sample test drive for the 2023 Hyundai Creta SX has been marked completed.",
+    data: { carId: creta.id, demo: true },
+    readAt: new Date(),
   });
   await getOrCreate(CarReport, { reporterId: customer2.id, carId: dzire.id, reason: "DEMO_REVIEW" }, {
     reporterId: customer2.id, carId: dzire.id, reason: "DEMO_REVIEW",
@@ -205,6 +256,14 @@ async function main() {
     dealerId: dealer1.id, carId: soldCity.id, category: "DETAILING", amount: 3500,
     note: "Demo detailing expense before sale.",
   });
+  await getOrCreate(VehicleExpense, { dealerId: dealer2.id, carId: creta.id, category: "REPAIR" }, {
+    dealerId: dealer2.id, carId: creta.id, category: "REPAIR", amount: 7800,
+    note: "Demo brake and suspension inspection before listing.",
+  });
+  await getOrCreate(VehicleExpense, { dealerId: dealer2.id, carId: reservedSwift.id, category: "INSURANCE" }, {
+    dealerId: dealer2.id, carId: reservedSwift.id, category: "INSURANCE", amount: 6200,
+    note: "Demo insurance renewal expense.",
+  });
   await getOrCreate(VehicleSale, { carId: soldCity.id }, {
     dealerId: dealer1.id, carId: soldCity.id, salePrice: 825000,
     acquisitionCost: 735000, expensesTotal: 3500, profit: 86500,
@@ -217,7 +276,9 @@ async function main() {
   console.log("  Dealer 2: demo.dealer2@smassociate.test");
   console.log("  Customer: demo.customer@smassociate.test");
   console.log("  Customer 2: demo.customer2@smassociate.test");
+  console.log("  Customer 3: demo.customer3@smassociate.test");
   console.log(`  Password: ${DEMO_PASSWORD}`);
+  console.log("Seeded modules: accounts/roles, dealer profiles, vehicle catalogue/inventory statuses, favourites, enquiries, sell-car leads, test drives, notifications, moderation reports, expenses and completed sales.");
   console.log("Use only in a development/test database. Change or remove these accounts before production.");
 }
 
