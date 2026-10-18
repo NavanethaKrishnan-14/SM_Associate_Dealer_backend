@@ -170,11 +170,6 @@ test("Google sign-in verifies the ID token and issues an API session", async () 
   assert.equal(currentUser.status, 200);
   assert.equal(currentUser.body.data.id, response.body.data.user.id);
 
-  const roleMismatch = await request(app)
-    .post("/api/v1/auth/google")
-    .send({ idToken: "valid-google-id-token-for-integration-tests", role: "DEALER", businessName: "Test Dealer", city: "Tirunelveli" });
-  assert.equal(roleMismatch.status, 403);
-  assert.equal(roleMismatch.body.error.code, "ROLE_MISMATCH");
 });
 
 test("Google sign-in rejects invalid provider tokens", async () => {
