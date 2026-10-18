@@ -83,7 +83,23 @@ export const VehicleSale = make("VehicleSale", saleSchema);
  * Only drop the exact conflicting index; no user documents are modified.
  */
 async function reconcileLegacyUserIndexes() {
-  const indexes = await User.collection.indexes();
+  let indexes;
+  try {
+    indexes = await User.collection.indexes();
+  } catch (error) {
+    // A brand-new database may not have a users collection yet. In that case,
+    // Mongoose will create the collection and its indexes during User.init().
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: number }).code === 26
+    ) {
+      return;
+    }
+    throw error;
+  }
+
   const phoneIndex = indexes.find(
     (index) =>
       index.name === "phone_1" &&
